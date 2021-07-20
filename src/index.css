@@ -1,13 +1,83 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+#okvir {
+    height: 700px;
+    width: 600px;
+    margin: 0px auto 0px auto;
+    background-color: pink;
+    display: flex;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+#display {
+    height: 600px;
+    width: 360px;
+    border-style: solid;
+    border-width: 6px;
+    border-color: grey;
+    background-color: black;
+    display: grid;
+    grid-template-rows: repeat(20, 30px);
+    grid-template-columns: repeat(12, 30px);
+    grid-auto-flow: row;
 }
+
+#el {
+    height: 100%;
+    width: 240px;
+    background-color: green;
+    display: flex;
+    flex-direction: column;
+}
+
+#brdisplay {
+    height: 90px;
+    width: 200px;
+    background-color: black;
+    color: white;
+    border-style: solid;
+    border-width: 6px;
+    border-color: grey;
+    border-radius: 20%;
+    margin: 50px auto 0px auto;
+    display: flex;
+    align-items: center;
+}
+
+#brdisplay-naslov {
+    font-family: sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    display: inline-block;
+    margin-left: 20px;
+}
+
+#gumb {
+    height: 70px;
+    width: 160px;
+    background-color: #222222;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 40px auto 0px auto;
+    border-radius: 20%;
+}
+
+#gumb:hover {
+    background-color: #555555;
+}
+
+#gumb-p {
+    font-family: sans-serif;
+    font-size: 21px;
+    display: inline-block;
+}
+
+
+.polje {
+    box-sizing: border-box;
+    border-width: 1px;
+    border-style: solid;
+    border-color: #111111;
+}
+
+
+
