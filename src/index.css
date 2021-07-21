@@ -1,6 +1,6 @@
 #okvir {
     height: 700px;
-    width: 600px;
+    width: 840px;
     margin: 0px auto 0px auto;
     background-color: pink;
     display: flex;
@@ -19,7 +19,7 @@
     grid-auto-flow: row;
 }
 
-#el {
+#el, #el1 {
     height: 100%;
     width: 240px;
     background-color: green;
@@ -79,5 +79,44 @@
     border-color: #111111;
 }
 
+#nextdisplay {
+    height: 500px;
+    width: 200px;
+    background-color: black;
+    color: white;
+    border-style: solid;
+    border-width: 6px;
+    border-color: grey;
+    border-radius: 20%;
+    margin: 50px auto 0px auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;   
+}
 
+#nextdisplay-naslov {
+    font-family: sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    display: inline-block;
+    /*margin-left: 20px;*/
+}
+
+#display1 {
+    height: 60px;
+    width: 120px;
+    /*background-color: #333333;*/
+    display: grid;
+    grid-template-rows: repeat(2, 30px);
+    grid-template-columns: repeat(4, 30px);
+    grid-auto-flow: row;
+    margin-top: 30px;
+}
+
+.polje1 {
+    box-sizing: border-box;
+    border-width: 0px;
+    border-style: solid;
+    border-color: #111111;
+}
 

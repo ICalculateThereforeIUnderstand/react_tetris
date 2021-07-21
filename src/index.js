@@ -30,6 +30,126 @@ function Gumb() {
 	)
 }
 
+function NextDisplay({sljedeci}) {
+// ova funkcija crta sljedece objekte koji ce pasti. sljedeci je polje sa imenima objekata. ako ima vise od
+// cetiri objekta, ova funkcija prikazuje samo prva cetiri. Ako ne zelis prikazati ni jedan objekt, postavi
+// property sljedeci na prazno polje, []
+	const [next, setNext] = React.useState(sljedeci);
+	var [polje, setPolje] = React.useState([]);
+	
+	React.useEffect(() => {
+		var sl = sljedeci;
+		if (sl.length > 4) sl = sl.slice(0,3);
+		//setNext(sl);
+		
+		var pp = sl.map((el, i) => {return <NextObjekt key={i} objekt={el}/>});
+		setPolje(pp);
+		
+	}, [sljedeci]);
+	
+	//React.useEffect(() => {
+	//	var pp = next.map((el, i) => {return <NextObjekt key={i} objekt={el}/>});
+	//	setPolje(pp);
+	//}, [next]);
+		
+	return (
+	    <div id="nextdisplay">
+	        <p id="nextdisplay-naslov">Next</p>
+	        {polje}
+	    </div>
+	)
+}
+
+
+
+
+function NextObjekt({objekt}) {
+
+	const [r1, r2, r3, r4, r5, r6, r7, r8] = [React.useRef(), React.useRef(), React.useRef(), React.useRef(), React.useRef(), React.useRef(), React.useRef(), React.useRef()];
+	
+	function nacrtaj(polja, boja) {
+		for (let el of polja) {
+			switch (el) {
+				case (1):
+		            r1.current.style.backgroundColor = boja;
+		            r1.current.style.borderWidth = "1px";
+		            break;	
+		        case (2):
+		            r2.current.style.backgroundColor = boja;
+		            r2.current.style.borderWidth = "1px";
+		            break;
+		        case (3):
+		            r3.current.style.backgroundColor = boja;
+		            r3.current.style.borderWidth = "1px";
+		            break;
+		        case (4):
+		            r4.current.style.backgroundColor = boja;
+		            r4.current.style.borderWidth = "1px";
+		            break;
+		        case (5):
+		            r5.current.style.backgroundColor = boja;
+		            r5.current.style.borderWidth = "1px";
+		            break;
+		        case (6):
+		            r6.current.style.backgroundColor = boja;
+		            r6.current.style.borderWidth = "1px";
+		            break;
+		        case (7):
+		            r7.current.style.backgroundColor = boja;
+		            r7.current.style.borderWidth = "1px";
+		            break;
+		        case (8):
+		            r8.current.style.backgroundColor = boja;
+		            r8.current.style.borderWidth = "1px";
+		            break;
+			}
+		}
+	}
+	
+	React.useEffect(() => {
+		nacrtaj([1,2,3,4,5,6,7,8], "black");
+		switch (objekt) {
+			case "I-shape":
+			    nacrtaj([1,2,3,4], "#d97d04");
+			    break;
+			case "kvadrat":
+			    nacrtaj([2,3,6,7], "#db1107");
+			    break;
+			case "munja":
+			    nacrtaj([5,6,2,3], "#09e2e6");
+			    break;
+			case "obrnuta_munja":
+			    nacrtaj([1,2,6,7], "#29d91c");
+			    break;
+			case "L-shape":
+			    nacrtaj([1,2,3,5], "#0422ba");
+			    break;
+			case "obrL-shape":
+			    nacrtaj([1,2,3,7], "#cc0eb9");
+			    break;
+			case "T-shape":
+			    nacrtaj([1,2,3,6], "#d4d124");
+			    break;
+			default:
+			    alert("Greskica");
+			
+		}
+	}, [objekt]);
+	
+	return (
+	    <div id="display1">
+	        <div ref={r1} className="polje1"></div>
+	        <div ref={r2} className="polje1"></div>
+	        <div ref={r3} className="polje1"></div>
+	        <div ref={r4} className="polje1"></div>
+	        <div ref={r5} className="polje1"></div>
+	        <div ref={r6} className="polje1"></div>
+	        <div ref={r7} className="polje1"></div>
+	        <div ref={r8} className="polje1"></div>
+	    </div>
+	)
+}
+
 class Aplikacija extends React.Component {
 	
 	constructor(props) {
@@ -37,7 +157,8 @@ class Aplikacija extends React.Component {
 		
 		this.state = {
 			stanja: inicirajPolje(20, 12, 0),  // stanje displaya
-			objekt: {tip: null, koordX: null, koordY: null, orijentacija: null}
+			objekt: {tip: null, koordX: null, koordY: null, orijentacija: null},
+			nextObjects: []    // sljedeci objekti koji ce se pojaviti
 		}
 		
 		this.promijeniPolje = this.promijeniPolje.bind(this);
@@ -52,6 +173,7 @@ class Aplikacija extends React.Component {
 		this.pomakniUStranuObjekt = this.pomakniUStranuObjekt.bind(this);
 		this.rotirajObjekt = this.rotirajObjekt.bind(this);
 		this.provjeriRotacijuObjekt = this.provjeriRotacijuObjekt.bind(this);
+		this.sljedeciRandomObjekt = this.sljedeciRandomObjekt.bind(this);
 	}
 	
 	componentDidMount() {
@@ -113,6 +235,9 @@ class Aplikacija extends React.Component {
 	render() {
 		return (
 		    <div id="okvir">
+		        <div id="el1">
+		            <NextDisplay sljedeci={this.state.nextObjects}/>
+		        </div>
 		        <div ref={(e) => {this._div = e}} id="display">
 		        </div>
 		        <div id="el">
@@ -126,13 +251,20 @@ class Aplikacija extends React.Component {
 	}
 	
 	engine() {
-		this.inicirajObjekt("T-shape");  // I-shape, kvadrat, munja, obrnuta_munja, L-shape, obrL-shape, T-shape
+		//this.inicirajObjekt("T-shape");  // I-shape, kvadrat, munja, obrnuta_munja, L-shape, obrL-shape, T-shape
 		
 		//this.nacrtajObjekt({tip: "I-shape", koordX: 1, koordY: 6, orijentacija: 1, sw: true});
 		//this.nacrtajObjekt({tip: "I-shape", koordX: 6, koordY: 7, orijentacija: 1, sw: true});
 		//this.nacrtajObjekt({tip: "I-shape", koordX: 6, koordY: 1, orijentacija: 1, sw: true});
 		
+		setInterval(() => {
+		this.sljedeciRandomObjekt();
+		console.log("STANJE: " + this.state.nextObjects);
 		
+	}, 2000);
+	    
+		
+		if (false) {
 		setTimeout(() => {
 		//	this.spustiObjekt()
 		this.nacrtajObjekt({tip: "I-shape", koordX: 2, koordY: 5, orijentacija: 1, sw: true});
@@ -140,6 +272,15 @@ class Aplikacija extends React.Component {
 		    this.nacrtajObjekt({tip: "kvadrat", koordX: 8, koordY: 15, orijentacija: 1, sw: true});
 		    this.nacrtajObjekt({tip: "I-shape", koordX: 8, koordY: 16, orijentacija: 2, sw: true});
 			}, 80);
+        }			
+	}
+	
+	sljedeciRandomObjekt() {
+		var noviNext = [...this.state.nextObjects];
+		noviNext.push(["I-shape", "kvadrat", "munja", "obrnuta_munja", "L-shape", "obrL-shape", "T-shape"][Math.floor(Math.random()*7)]);
+		if (noviNext.length > 4)  noviNext.shift();
+		console.log("noviNext je " + noviNext);
+		this.setState({nextObjects: noviNext});
 	}
 	
 	spustiObjekt() {
