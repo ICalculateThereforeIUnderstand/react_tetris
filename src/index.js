@@ -46,12 +46,7 @@ function NextDisplay({sljedeci}) {
 		setPolje(pp);
 		
 	}, [sljedeci]);
-	
-	//React.useEffect(() => {
-	//	var pp = next.map((el, i) => {return <NextObjekt key={i} objekt={el}/>});
-	//	setPolje(pp);
-	//}, [next]);
-		
+			
 	return (
 	    <div id="nextdisplay">
 	        <p id="nextdisplay-naslov">Next</p>
@@ -158,7 +153,10 @@ class Aplikacija extends React.Component {
 		this.state = {
 			stanja: inicirajPolje(20, 12, 0),  // stanje displaya
 			objekt: {tip: null, koordX: null, koordY: null, orijentacija: null},
-			nextObjects: []    // sljedeci objekti koji ce se pojaviti
+			nextObjects: [],    // sljedeci objekti koji ce se pojaviti
+			level: 1,
+			brLinija: 0,
+			score: 0
 		}
 		
 		this.promijeniPolje = this.promijeniPolje.bind(this);
@@ -174,6 +172,8 @@ class Aplikacija extends React.Component {
 		this.rotirajObjekt = this.rotirajObjekt.bind(this);
 		this.provjeriRotacijuObjekt = this.provjeriRotacijuObjekt.bind(this);
 		this.sljedeciRandomObjekt = this.sljedeciRandomObjekt.bind(this);
+		this.provjeriPuneLinije = this.provjeriPuneLinije.bind(this);
+		this.animirajPuneLinije = this.animirajPuneLinije.bind(this);
 	}
 	
 	componentDidMount() {
@@ -193,12 +193,21 @@ class Aplikacija extends React.Component {
 		//this.promijeniPolje([[0, 5, 1], [1, 5, 2], [2, 5, 0], [3, 5, 3], [4, 5, 4], [5, 5, 5], [6, 5, 6], [7, 5, 7]]);
 	}
 	
+	componentWillUnmount() {
+		alert("unmountam");
+		document.removeEventListener("keydown", this.pritisakGumba);
+        document.removeEventListener("keyup", this.pritisakGumbaUp);
+	}
+	
 	componentDidUpdate(prevProps, prevState) {
-		console.log("funkcija componentDidUpdate je pokrenuta");
+		//console.log("funkcija componentDidUpdate je pokrenuta");	
 		for (let i = 0; i < 240; i++) {
 			if (prevState.stanja[Math.floor(i/12)][i%12] != this.state.stanja[Math.floor(i/12)][i%12]) {
 				//console.log("upravo mjenjamo " + (i%12) + " / " + Math.floor(i/12));
 				switch (this.state.stanja[Math.floor(i/12)][i%12]) {
+					case (-1):   //  slucaj animacije polja kojeg ponistavamo, u slucaju da je linija puna
+					    this._div.children[i].style.backgroundColor = "white";
+					    break;
 					case (0):
 				        this._div.children[i].style.backgroundColor = "#000000"; // crna
 				        break;
@@ -228,6 +237,7 @@ class Aplikacija extends React.Component {
 				}
 			}
 		}
+	  	
 		//console.log("previous:" + prevState.stanja);
 		
 	}
@@ -241,9 +251,9 @@ class Aplikacija extends React.Component {
 		        <div ref={(e) => {this._div = e}} id="display">
 		        </div>
 		        <div id="el">
-		            <BrDisplay naslov="Score:" broj="547567"/>
-		            <BrDisplay naslov="Level:" broj="2"/>
-		            <BrDisplay naslov="Lines:" broj="145"/>
+		            <BrDisplay naslov="Score:" broj={this.state.score}/>
+		            <BrDisplay naslov="Level:" broj={this.state.level}/>
+		            <BrDisplay naslov="Lines:" broj={this.state.brLinija}/>
 		            <Gumb/>
 		        </div>
 		    </div>
@@ -251,27 +261,36 @@ class Aplikacija extends React.Component {
 	}
 	
 	engine() {
-		//this.inicirajObjekt("T-shape");  // I-shape, kvadrat, munja, obrnuta_munja, L-shape, obrL-shape, T-shape
+		setTimeout(() => {
+		    this.sljedeciRandomObjekt();
+		    this.sljedeciRandomObjekt();
+		    this.sljedeciRandomObjekt();
+		    this.sljedeciRandomObjekt();
+		    
+		    this.inicirajObjekt(this.state.nextObjects[0]);  // I-shape, kvadrat, munja, obrnuta_munja, L-shape, obrL-shape, T-shape
+		    this.sljedeciRandomObjekt();
+	    }, 10);
+		
 		
 		//this.nacrtajObjekt({tip: "I-shape", koordX: 1, koordY: 6, orijentacija: 1, sw: true});
 		//this.nacrtajObjekt({tip: "I-shape", koordX: 6, koordY: 7, orijentacija: 1, sw: true});
 		//this.nacrtajObjekt({tip: "I-shape", koordX: 6, koordY: 1, orijentacija: 1, sw: true});
 		
-		setInterval(() => {
-		this.sljedeciRandomObjekt();
-		console.log("STANJE: " + this.state.nextObjects);
-		
-	}, 2000);
+		//setInterval(() => {
+		//this.sljedeciRandomObjekt();
+		//console.log("STANJE: " + this.state.nextObjects);
+		//}, 2000);
 	    
 		
-		if (false) {
+		if (true) {
 		setTimeout(() => {
 		//	this.spustiObjekt()
-		this.nacrtajObjekt({tip: "I-shape", koordX: 2, koordY: 5, orijentacija: 1, sw: true});
-		    this.nacrtajObjekt({tip: "munja", koordX: 2, koordY: 9, orijentacija: 2, sw: true});
-		    this.nacrtajObjekt({tip: "kvadrat", koordX: 8, koordY: 15, orijentacija: 1, sw: true});
-		    this.nacrtajObjekt({tip: "I-shape", koordX: 8, koordY: 16, orijentacija: 2, sw: true});
-			}, 80);
+		this.nacrtajObjekt({tip: "kvadrat", koordX: 0, koordY: 18, orijentacija: 1, sw: true});
+		    this.nacrtajObjekt({tip: "kvadrat", koordX: 2, koordY: 18, orijentacija: 1, sw: true});
+		    this.nacrtajObjekt({tip: "kvadrat", koordX: 4, koordY: 18, orijentacija: 1, sw: true});
+		    this.nacrtajObjekt({tip: "kvadrat", koordX: 6, koordY: 18, orijentacija: 1, sw: true});
+		    this.nacrtajObjekt({tip: "kvadrat", koordX: 8, koordY: 18, orijentacija: 1, sw: true});
+			}, 10);
         }			
 	}
 	
@@ -279,14 +298,14 @@ class Aplikacija extends React.Component {
 		var noviNext = [...this.state.nextObjects];
 		noviNext.push(["I-shape", "kvadrat", "munja", "obrnuta_munja", "L-shape", "obrL-shape", "T-shape"][Math.floor(Math.random()*7)]);
 		if (noviNext.length > 4)  noviNext.shift();
-		console.log("noviNext je " + noviNext);
+		//console.log("noviNext je " + noviNext);
 		this.setState({nextObjects: noviNext});
 	}
 	
 	spustiObjekt() {
-		console.log("spustam objekt");
+		//console.log("spustam objekt");
 		if (this.provjeriDoljeObjekt()) {
-			console.log("MOZE");
+			//console.log("MOZE");
 		    var noviObjekt = {...this.state.objekt};
 		    this.nacrtajObjekt({...noviObjekt, sw: false});
 		    noviObjekt.koordY += 1;
@@ -294,7 +313,7 @@ class Aplikacija extends React.Component {
 		    this.nacrtajObjekt({...noviObjekt, sw: true});
 		    this.setState({objekt: noviObjekt});
 		} else {
-			console.log("ne moze");
+			//console.log("ne moze");
 		}
 		
 		
@@ -781,7 +800,7 @@ class Aplikacija extends React.Component {
 	nacrtajObjekt({tip, koordX, koordY, orijentacija, sw}) {
 		//ova funkcija za sw true crta objekt dane orijentacije i danog tipa i koordinata, za false brise
 		var vr = 0;
-		console.log("ucitane vrijednosti: "+ tip + " / " + koordX  + " / " + koordY + " / " + orijentacija  + " / " +sw);
+		//console.log("ucitane vrijednosti: "+ tip + " / " + koordX  + " / " + koordY + " / " + orijentacija  + " / " +sw);
 		switch (tip) {
 			case "I-shape":
 			    if (sw) vr = 2;
@@ -928,6 +947,80 @@ class Aplikacija extends React.Component {
 		this.setState({stanja: rez});
 	}
 	
+	provjeriPuneLinije() {
+		// ova funkcija pregledava redove displaya, i vraca polje redova koji su puni
+		var rez = [];
+		for (let i = 0; i < 20; i++) {
+			let sw = true;
+			for (let j = 0; j < 12; j++) {
+				if (this.state.stanja[i][j] == 0) {
+					sw = false;
+					break;
+				}
+			}
+			if (sw)  rez.push(i);
+		}
+		return rez;
+	}
+	
+	animirajPuneLinije(linije) {
+		var pp = [];
+		console.log("krenula animacije");
+		for (let i = 0; i < linije.length; i++) {
+			for (let j = 0; j < 12; j++) {
+				pp.push([j, linije[i], -1]);
+			}
+		}
+		console.log("krenula animacije " + pp);
+		this.promijeniPolje(pp);
+		pp =  pp.map((el) => {return [el[0], el[1], 0]});
+		
+		
+		setTimeout(()=>{
+		    this.promijeniPolje(pp);
+		    this.urusiPuneLinije(linije);	
+			}, 500);
+	}
+	
+	urusiPuneLinije(linije) {
+		this.nacrtajObjekt({...this.state.objekt, sw: false});
+		var rez = JSON.parse(JSON.stringify(this.state.stanja));
+		var redci = [];
+		for (let i = linije.length-1; i > -1; i--) {
+			rez.splice(linije[i],1);
+			console.log("uklonio sam liniju " + linije[i]);
+			redci.push([0,0,0,0,0,0,0,0,0,0,0,0]);
+		}
+		rez = redci.concat(rez);
+		
+		var brlin = this.state.brLinija;
+		brlin += linije.length;
+		var sco = this.state.score;
+		sco += izracunajScore(this.state.level, this.state.score, linije.length);
+		
+		this.setState({stanja: rez, score: sco, brLinija: brlin});
+		this.nacrtajObjekt({...this.state.objekt, sw: true});
+		
+		function izracunajScore(level, score, brlinija) {
+            switch (brlinija) {
+                case (1):
+                    var baza = 40;
+                    break;
+                case (2):
+                    var baza = 100;
+                    break;
+                case (3):
+                    var baza = 300;
+                    break;
+                case (4):
+                    var baza = 1200;
+                    break;
+           }
+           //console.log("proracun " + level + " / " + baza + "");
+           return level * baza;
+       }
+	}
+	
 	pritisakGumba(ev) {
 		ev.preventDefault();
 		console.log("upravo si pritisnuo gumb " + ev.code);
@@ -944,7 +1037,14 @@ class Aplikacija extends React.Component {
 			case "ArrowUp":
 			    this.rotirajObjekt();    
 			    break;
+			case "KeyD":
+			    console.log("pune linije: " + this.provjeriPuneLinije());
+			    let rr = this.provjeriPuneLinije();
+			    if (rr.length != 0)  this.animirajPuneLinije(rr);
 			    
+			    this.inicirajObjekt(this.state.nextObjects[0]);  // I-shape, kvadrat, munja, obrnuta_munja, L-shape, obrL-shape, T-shape
+		        this.sljedeciRandomObjekt();
+		        break;
 		}
 	}
 	
