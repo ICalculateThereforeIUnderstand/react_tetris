@@ -2,6 +2,12 @@ import React from "react";
 import ReactDOM from "react-dom";
 import "./index.css";
 
+function dodajStilove(el, stilovi) {
+	for (let key in stilovi) {
+		el.style[key] = stilovi[key];
+	}
+}
+
 function inicirajPolje(x, y, vr) { // inicira polje [x][y] sa vrijednostima vr
 	var rez = [];
 	for (let i = 0; i < x; i++) {
@@ -153,6 +159,8 @@ class Aplikacija extends React.Component {
 		this.state = {
 			stanja: inicirajPolje(20, 12, 0),  // stanje displaya
 			objekt: {tip: null, koordX: null, koordY: null, orijentacija: null},
+			projekcija: {tip: null, koordX: null, koordY: null, orijentacija: null},  //  projekcija objekta na dnu displaya
+			projekcijaSw: true,  // za true crta projekciju, za false ne crta
 			nextObjects: [],    // sljedeci objekti koji ce se pojaviti
 			level: 1,
 			brLinija: 0,
@@ -164,6 +172,7 @@ class Aplikacija extends React.Component {
 		this.engine = this.engine.bind(this);
 		this.nacrtajObjekt = this.nacrtajObjekt.bind(this);
 		this.spustiObjekt = this.spustiObjekt.bind(this);
+		this.brzoSpustiObjekt = this.brzoSpustiObjekt.bind(this);
 		this.provjeriDoljeObjekt = this.provjeriDoljeObjekt.bind(this);
 		this.pritisakGumba = this.pritisakGumba.bind(this);
 		this.pritisakGumbaUp = this.pritisakGumbaUp.bind(this);
@@ -174,6 +183,8 @@ class Aplikacija extends React.Component {
 		this.sljedeciRandomObjekt = this.sljedeciRandomObjekt.bind(this);
 		this.provjeriPuneLinije = this.provjeriPuneLinije.bind(this);
 		this.animirajPuneLinije = this.animirajPuneLinije.bind(this);
+		this.ugradiObjekt = this.ugradiObjekt.bind(this);
+		this.projecirajObjekt = this.projecirajObjekt.bind(this);
 	}
 	
 	componentDidMount() {
@@ -205,32 +216,35 @@ class Aplikacija extends React.Component {
 			if (prevState.stanja[Math.floor(i/12)][i%12] != this.state.stanja[Math.floor(i/12)][i%12]) {
 				//console.log("upravo mjenjamo " + (i%12) + " / " + Math.floor(i/12));
 				switch (this.state.stanja[Math.floor(i/12)][i%12]) {
-					case (-1):   //  slucaj animacije polja kojeg ponistavamo, u slucaju da je linija puna
-					    this._div.children[i].style.backgroundColor = "white";
+					case (-1):
+					    dodajStilove(this._div.children[i], {borderColor:"green"});   // ovo je za slucaj projekcije
 					    break;
 					case (0):
-				        this._div.children[i].style.backgroundColor = "#000000"; // crna
+				        dodajStilove(this._div.children[i], {borderColor:"#111111", backgroundColor:"#000000"}); // crna, prazno polje
 				        break;
 				    case (1):
-				        this._div.children[i].style.backgroundColor = "#db1107"; // crvena, za kvadrat
+				        dodajStilove(this._div.children[i], {borderColor:"#111111", backgroundColor:"#db1107"}); // crvena, za kvadrat
 				        break;
 				    case (2):
-				        this._div.children[i].style.backgroundColor = "#d97d04"; // smeda, za liniju
+				        dodajStilove(this._div.children[i], {borderColor:"#111111", backgroundColor:"#d97d04"});  // smeda, za liniju
 				        break;
 				    case (3):
-				        this._div.children[i].style.backgroundColor = "#09e2e6"; // svjetlo plava, za munju
+				        dodajStilove(this._div.children[i], {borderColor:"#111111", backgroundColor:"#09e2e6"});  // svjetlo plava, za munju
 				        break;
 				    case (4):
-				        this._div.children[i].style.backgroundColor = "#29d91c"; // zelena, za obrnutu munju
+				        dodajStilove(this._div.children[i], {borderColor:"#111111", backgroundColor:"#29d91c"});  // zelena, za obrnutu munju
 				        break;    
 				    case (5):
-				        this._div.children[i].style.backgroundColor = "#0422ba"; // tamno plava, za L-shape
+				        dodajStilove(this._div.children[i], {borderColor:"#111111", backgroundColor:"#0422ba"});   // tamno plava, za L-shape
 				        break;
 				    case (6):
-				        this._div.children[i].style.backgroundColor = "#cc0eb9"; // roza, za obrnuti L-shape
+				        dodajStilove(this._div.children[i], {borderColor:"#111111", backgroundColor:"#cc0eb9"});  // roza, za obrnuti L-shape
 				        break;
 				    case (7):
-				        this._div.children[i].style.backgroundColor = "#d4d124"; // zuta, za T-shape
+				        dodajStilove(this._div.children[i], {borderColor:"#111111", backgroundColor:"#d4d124"});   // zuta, za T-shape
+				        break;
+				    case (8):   //  slucaj animacije polja kojeg ponistavamo, u slucaju da je linija puna
+				        dodajStilove(this._div.children[i], {backgroundColor:"white"});
 				        break;
 				    default:
 				        alert("Error, krivi input");
@@ -290,7 +304,7 @@ class Aplikacija extends React.Component {
 		    this.nacrtajObjekt({tip: "kvadrat", koordX: 4, koordY: 18, orijentacija: 1, sw: true});
 		    this.nacrtajObjekt({tip: "kvadrat", koordX: 6, koordY: 18, orijentacija: 1, sw: true});
 		    this.nacrtajObjekt({tip: "kvadrat", koordX: 8, koordY: 18, orijentacija: 1, sw: true});
-			}, 10);
+			}, 3);
         }			
 	}
 	
@@ -315,9 +329,40 @@ class Aplikacija extends React.Component {
 		} else {
 			//console.log("ne moze");
 		}
-		
+	}
+	
+	brzoSpustiObjekt() {
+		var noviObjekt = {...this.state.objekt};
+		this.nacrtajObjekt({...noviObjekt, sw: false});
+		while (this.provjeriDoljeObjekt(noviObjekt.koordX, noviObjekt.koordY, noviObjekt.tip, noviObjekt.orijentacija)) {
+		//provjeriDoljeObjekt(KoordX, KoordY, Tip, Orijentacija) 
+		//objekt: {tip: null, koordX: null, koordY: null, orijentacija: null}	
+		    noviObjekt.koordY += 1;
+		}
+		this.nacrtajObjekt({...noviObjekt, sw: true});
+		this.setState({objekt: noviObjekt});
+		this.ugradiObjekt();
+	}
+	
+	projecirajObjekt() {  // ova funkcija crta projekciju objekta na dnu displaya
+		if (this.state.projekcijaSw) {
+			console.log("POKRENUO si projekciju objekta");
+			var noviObjekt = null;
+			if (this.state.projekcija.tip !== null) {
+				noviObjekt = {...this.state.projekcija};
+		        this.nacrtajObjekt({...noviObjekt, sw: false, sw1: true});
+		        console.log("if pokrenut");		
+			}
+		    var noviObjekt = {...this.state.objekt};	
+			while (this.provjeriDoljeObjekt(noviObjekt.koordX, noviObjekt.koordY, noviObjekt.tip, noviObjekt.orijentacija)) {
+		        noviObjekt.koordY += 1;
+		    }
+		    this.nacrtajObjekt({...noviObjekt, sw: true, sw1: true});
+		    this.setState({projekcija: noviObjekt});
+		}
 		
 	}
+	
 	
 	rotirajObjekt() {
 		if (this.provjeriRotacijuObjekt()) {
@@ -352,6 +397,7 @@ class Aplikacija extends React.Component {
 		    
 		    this.nacrtajObjekt({...noviObjekt, sw: true});
 		    this.setState({objekt: noviObjekt});
+		    this.projecirajObjekt();
 		}
 	}
 	
@@ -366,6 +412,7 @@ class Aplikacija extends React.Component {
 			}
 		    this.nacrtajObjekt({...noviObjekt, sw: true});
 		    this.setState({objekt: noviObjekt});
+		    this.projecirajObjekt();
 		} 
 	}
 	
@@ -374,11 +421,11 @@ class Aplikacija extends React.Component {
 		switch (tip) {
 			case ("I-shape"):
 			    if (orijentacija == 1) {
-					if (koordY <= 17 && (koordY == 0  ||  this.state.stanja[koordY-1][koordX] == 0) && this.state.stanja[koordY+1][koordX] == 0 && this.state.stanja[koordY+2][koordX] == 0) return true;
+					if (koordY <= 17 && (koordY == 0  ||  this.state.stanja[koordY-1][koordX] <= 0) && this.state.stanja[koordY+1][koordX] <= 0 && this.state.stanja[koordY+2][koordX] <= 0) return true;
 					return false;
 				} else {
 					if (koordX == 0 || koordX >= 10) return false;
-					if (this.state.stanja[koordY][koordX-1] != 0 || this.state.stanja[koordY][koordX+1] != 0 || this.state.stanja[koordY][koordX+2] != 0) return false;
+					if (this.state.stanja[koordY][koordX-1] > 0 || this.state.stanja[koordY][koordX+1] > 0 || this.state.stanja[koordY][koordX+2] > 0) return false;
 					return true;
 				}
 			    break;
@@ -386,40 +433,40 @@ class Aplikacija extends React.Component {
 			    return false;
 			case ("munja"):
 			    if (orijentacija == 1) {
-					if ( (koordY == 0  ||  this.state.stanja[koordY-1][koordX] == 0) && this.state.stanja[koordY+1][koordX+1] == 0) return true;
+					if ( (koordY == 0  ||  this.state.stanja[koordY-1][koordX] <= 0) && this.state.stanja[koordY+1][koordX+1] <= 0) return true;
 					return false;
 				} else {
 					if (koordX == 0) return false;
-					if (this.state.stanja[koordY+1][koordX-1] != 0 || this.state.stanja[koordY+1][koordX] != 0) return false;
+					if (this.state.stanja[koordY+1][koordX-1] > 0 || this.state.stanja[koordY+1][koordX] > 0) return false;
 					return true;
 				}
 			    break;
 			case ("obrnuta_munja"):
 			    if (orijentacija == 1) {
-					if ( (koordY == 0  ||  this.state.stanja[koordY-1][koordX] == 0) && this.state.stanja[koordY+1][koordX-1] == 0) return true;
+					if ( (koordY == 0  ||  this.state.stanja[koordY-1][koordX] <= 0) && this.state.stanja[koordY+1][koordX-1] <= 0) return true;
 					return false;
 				} else {
 					if (koordX >= 11) return false;
-					if (this.state.stanja[koordY+1][koordX+1] != 0 || this.state.stanja[koordY+1][koordX] != 0) return false;
+					if (this.state.stanja[koordY+1][koordX+1] > 0 || this.state.stanja[koordY+1][koordX] > 0) return false;
 					return true;
 				}
 			    break;
 			case ("L-shape"):
 			    switch (orijentacija) {
 					case (1):
-					    if (  (koordY == 0  ||  (this.state.stanja[koordY-1][koordX-1] == 0 && this.state.stanja[koordY-1][koordX] == 0 )  )  && this.state.stanja[koordY+1][koordX] == 0) return true;
+					    if (  (koordY == 0  ||  (this.state.stanja[koordY-1][koordX-1] <= 0 && this.state.stanja[koordY-1][koordX] <= 0 )  )  && this.state.stanja[koordY+1][koordX] <= 0) return true;
 					    return false;
 					    break;
 					case (2):
-					    if (koordX <= 10 && (koordY == 0 || this.state.stanja[koordY-1][koordX+1] == 0)  && this.state.stanja[koordY][koordX+1] == 0 && this.state.stanja[koordY][koordX-1] == 0) return true;
+					    if (koordX <= 10 && (koordY == 0 || this.state.stanja[koordY-1][koordX+1] <= 0)  && this.state.stanja[koordY][koordX+1] <= 0 && this.state.stanja[koordY][koordX-1] <= 0) return true;
 					    return false;
 					    break;
 					case (3):
-					    if (koordY <= 18 && (koordY == 0 || this.state.stanja[koordY-1][koordX] == 0)  && this.state.stanja[koordY+1][koordX] == 0 && this.state.stanja[koordY+1][koordX+1] == 0) return true;
+					    if (koordY <= 18 && (koordY == 0 || this.state.stanja[koordY-1][koordX] <= 0)  && this.state.stanja[koordY+1][koordX] <= 0 && this.state.stanja[koordY+1][koordX+1] <= 0) return true;
 					    return false;
 					    break;
 					case (4):
-					    if (koordX >= 1 && this.state.stanja[koordY+1][koordX-1] == 0 && this.state.stanja[koordY][koordX-1] == 0 && this.state.stanja[koordY][koordX+1] == 0) return true;
+					    if (koordX >= 1 && this.state.stanja[koordY+1][koordX-1] <= 0 && this.state.stanja[koordY][koordX-1] <= 0 && this.state.stanja[koordY][koordX+1] <= 0) return true;
 					    return false;
 					    break;
 					default:
@@ -429,19 +476,19 @@ class Aplikacija extends React.Component {
 			case ("obrL-shape"):
 			    switch (orijentacija) {
 					case (1):
-					    if (  (koordY == 0 || this.state.stanja[koordY-1][koordX] == 0)  && this.state.stanja[koordY+1][koordX] == 0 && this.state.stanja[koordY+1][koordX-1] == 0) return true;
+					    if (  (koordY == 0 || this.state.stanja[koordY-1][koordX] <= 0)  && this.state.stanja[koordY+1][koordX] <= 0 && this.state.stanja[koordY+1][koordX-1] <= 0) return true;
 					    return false;
 					    break;
 					case (2):
-					    if (koordX <= 10 && (koordY == 0 || this.state.stanja[koordY-1][koordX-1] == 0)  && this.state.stanja[koordY][koordX-1] == 0 && this.state.stanja[koordY][koordX+1] == 0) return true;
+					    if (koordX <= 10 && (koordY == 0 || this.state.stanja[koordY-1][koordX-1] <= 0)  && this.state.stanja[koordY][koordX-1] <= 0 && this.state.stanja[koordY][koordX+1] <= 0) return true;
 					    return false;
 					    break;
 					case (3):
-					    if (koordY <= 18 && (koordY == 0 || (this.state.stanja[koordY-1][koordX] == 0 && this.state.stanja[koordY-1][koordX+1] == 0) ) && this.state.stanja[koordY+1][koordX] == 0) return true;
+					    if (koordY <= 18 && (koordY == 0 || (this.state.stanja[koordY-1][koordX] <= 0 && this.state.stanja[koordY-1][koordX+1] <= 0) ) && this.state.stanja[koordY+1][koordX] <= 0) return true;
 					    return false;
 					    break;
 					case (4):
-					    if (koordX >= 1 && this.state.stanja[koordY][koordX-1] == 0 && this.state.stanja[koordY][koordX+1] == 0 && this.state.stanja[koordY+1][koordX+1] == 0) return true;
+					    if (koordX >= 1 && this.state.stanja[koordY][koordX-1] <= 0 && this.state.stanja[koordY][koordX+1] <= 0 && this.state.stanja[koordY+1][koordX+1] <= 0) return true;
 					    return false;
 					    break;
 					default:
@@ -451,19 +498,19 @@ class Aplikacija extends React.Component {
 			case ("T-shape"):
 			    switch (orijentacija) {
 					case (1):
-					    if (koordY == 0 || this.state.stanja[koordY-1][koordX] == 0)  return true;
+					    if (koordY == 0 || this.state.stanja[koordY-1][koordX] <= 0)  return true;
 					    return false;
 					    break;
 					case (2):
-					    if (koordX <= 10 && this.state.stanja[koordY][koordX+1] == 0)  return true;
+					    if (koordX <= 10 && this.state.stanja[koordY][koordX+1] <= 0)  return true;
 					    return false;
 					    break;
 					case (3):
-					    if (koordY <= 18 && this.state.stanja[koordY+1][koordX] == 0)  return true;
+					    if (koordY <= 18 && this.state.stanja[koordY+1][koordX] <= 0)  return true;
 					    return false;
 					    break;
 					case (4):
-					    if (koordX >= 1 && this.state.stanja[koordY][koordX-1] == 0)  return true;
+					    if (koordX >= 1 && this.state.stanja[koordY][koordX-1] <= 0)  return true;
 					    return false;
 					    break;
 					default:
@@ -481,51 +528,51 @@ class Aplikacija extends React.Component {
 			switch (tip) {
 			    case ('I-shape'):
 			        if (orijentacija == 1) {
-						if (koordX > 1 && this.state.stanja[koordY][koordX-2] == 0) return true;
+						if (koordX > 1 && this.state.stanja[koordY][koordX-2] <= 0) return true;
 						return false;
 					} else {
-						if (koordX > 0 && (koordY == 0 || this.state.stanja[koordY-1][koordX-1] == 0) && this.state.stanja[koordY][koordX-1] == 0 && this.state.stanja[koordY+1][koordX-1] == 0 && this.state.stanja[koordY+2][koordX-1] == 0) return true;
+						if (koordX > 0 && (koordY == 0 || this.state.stanja[koordY-1][koordX-1] <= 0) && this.state.stanja[koordY][koordX-1] <= 0 && this.state.stanja[koordY+1][koordX-1] <= 0 && this.state.stanja[koordY+2][koordX-1] <= 0) return true;
 						return false;
 					}
 			        break;
 			    case ('kvadrat'):
-			        if (koordX > 0 && this.state.stanja[koordY][koordX-1] == 0 && this.state.stanja[koordY+1][koordX-1] == 0) return true;
+			        if (koordX > 0 && this.state.stanja[koordY][koordX-1] <= 0 && this.state.stanja[koordY+1][koordX-1] <= 0) return true;
 					return false;
 			        break;
 			    case ('munja'):
 			        if (orijentacija == 1) {
-						if (koordX > 1 && this.state.stanja[koordY+1][koordX-2] == 0 && this.state.stanja[koordY][koordX-1] == 0) return true;
+						if (koordX > 1 && this.state.stanja[koordY+1][koordX-2] <= 0 && this.state.stanja[koordY][koordX-1] <= 0) return true;
 						return false;
 					} else {
-						if (koordX > 0 && (koordY == 0 || this.state.stanja[koordY-1][koordX-1] == 0) && this.state.stanja[koordY][koordX-1] == 0 && this.state.stanja[koordY+1][koordX] == 0) return true;
+						if (koordX > 0 && (koordY == 0 || this.state.stanja[koordY-1][koordX-1] <= 0) && this.state.stanja[koordY][koordX-1] <= 0 && this.state.stanja[koordY+1][koordX] <= 0) return true;
 						return false;
 					}
 			        break;
 			    case ('obrnuta_munja'):
 			        if (orijentacija == 1) {
-						if (koordX > 1 && this.state.stanja[koordY][koordX-2] == 0 && this.state.stanja[koordY+1][koordX-1] == 0) return true;
+						if (koordX > 1 && this.state.stanja[koordY][koordX-2] <= 0 && this.state.stanja[koordY+1][koordX-1] <= 0) return true;
 						return false;
 					} else {
-						if (koordX > 1 && (koordY == 0 || this.state.stanja[koordY-1][koordX-1] == 0) && this.state.stanja[koordY][koordX-2] == 0 && this.state.stanja[koordY+1][koordX-2] == 0) return true;
+						if (koordX > 1 && (koordY == 0 || this.state.stanja[koordY-1][koordX-1] <= 0) && this.state.stanja[koordY][koordX-2] <= 0 && this.state.stanja[koordY+1][koordX-2] <= 0) return true;
 						return false;
 					}
 			        break;
 			    case ('L-shape'):
 			        switch (orijentacija) {
 					    case (1):
-					        if (koordX > 1 && this.state.stanja[koordY][koordX-2] == 0 && this.state.stanja[koordY+1][koordX-2] == 0) return true;
+					        if (koordX > 1 && this.state.stanja[koordY][koordX-2] <= 0 && this.state.stanja[koordY+1][koordX-2] <= 0) return true;
 						    return false;
 					        break;	
 					    case (2):
-					        if (koordX > 1 &&  (koordY == 0 || this.state.stanja[koordY-1][koordX-2] == 0)  && this.state.stanja[koordY][koordX-1] == 0 && this.state.stanja[koordY+1][koordX-1] == 0) return true;
+					        if (koordX > 1 &&  (koordY == 0 || this.state.stanja[koordY-1][koordX-2] <= 0)  && this.state.stanja[koordY][koordX-1] <= 0 && this.state.stanja[koordY+1][koordX-1] <= 0) return true;
 						    return false;
 					        break;
 					    case (3):
-					        if (koordX > 1 && (koordY == 0 || this.state.stanja[koordY-1][koordX] == 0) && this.state.stanja[koordY][koordX-2] == 0) return true;
+					        if (koordX > 1 && (koordY == 0 || this.state.stanja[koordY-1][koordX] <= 0) && this.state.stanja[koordY][koordX-2] <= 0) return true;
 					        return false;
 					        break;
 					    case (4):
-					        if (koordX > 0 && (koordY == 0 || this.state.stanja[koordY-1][koordX-1] == 0)  && this.state.stanja[koordY][koordX-1] == 0 && this.state.stanja[koordY+1][koordX-1] == 0) return true;
+					        if (koordX > 0 && (koordY == 0 || this.state.stanja[koordY-1][koordX-1] <= 0)  && this.state.stanja[koordY][koordX-1] <= 0 && this.state.stanja[koordY+1][koordX-1] <= 0) return true;
 						    return false;
 					        break;
 					    default:
@@ -535,19 +582,19 @@ class Aplikacija extends React.Component {
 			    case ('obrL-shape'):
 			        switch (orijentacija) {
 					    case (1):
-					        if (koordX > 1 && this.state.stanja[koordY][koordX-2] == 0 && this.state.stanja[koordY+1][koordX] == 0) return true;
+					        if (koordX > 1 && this.state.stanja[koordY][koordX-2] <= 0 && this.state.stanja[koordY+1][koordX] <= 0) return true;
 						    return false;
 					        break;	
 					    case (2):
-					        if (koordX > 1 &&  (koordY == 0 || this.state.stanja[koordY-1][koordX-1] == 0)  && this.state.stanja[koordY][koordX-1] == 0 && this.state.stanja[koordY+1][koordX-2] == 0) return true;
+					        if (koordX > 1 &&  (koordY == 0 || this.state.stanja[koordY-1][koordX-1] <= 0)  && this.state.stanja[koordY][koordX-1] <= 0 && this.state.stanja[koordY+1][koordX-2] <= 0) return true;
 						    return false;
 					        break;
 					    case (3):
-					        if (koordX > 1 && (koordY == 0 || this.state.stanja[koordY-1][koordX-2] == 0) && this.state.stanja[koordY][koordX-2] == 0) return true;
+					        if (koordX > 1 && (koordY == 0 || this.state.stanja[koordY-1][koordX-2] <= 0) && this.state.stanja[koordY][koordX-2] <= 0) return true;
 					        return false;
 					        break;
 					    case (4):
-					        if (koordX > 0 && (koordY == 0 || this.state.stanja[koordY-1][koordX-1] == 0)  && this.state.stanja[koordY][koordX-1] == 0 && this.state.stanja[koordY+1][koordX-1] == 0) return true;
+					        if (koordX > 0 && (koordY == 0 || this.state.stanja[koordY-1][koordX-1] <= 0)  && this.state.stanja[koordY][koordX-1] <= 0 && this.state.stanja[koordY+1][koordX-1] <= 0) return true;
 						    return false;
 					        break;
 					    default:
@@ -557,19 +604,19 @@ class Aplikacija extends React.Component {
 			    case ('T-shape'):
 			        switch (orijentacija) {
 					    case (1):
-					        if (koordX > 1 && this.state.stanja[koordY][koordX-2] == 0 && this.state.stanja[koordY+1][koordX-1] == 0) return true;
+					        if (koordX > 1 && this.state.stanja[koordY][koordX-2] <= 0 && this.state.stanja[koordY+1][koordX-1] <= 0) return true;
 						    return false;
 					        break;	
 					    case (2):
-					        if (koordX > 1 &&  (koordY == 0 || this.state.stanja[koordY-1][koordX-1] == 0)  && this.state.stanja[koordY][koordX-2] == 0 && this.state.stanja[koordY+1][koordX-1] == 0) return true;
+					        if (koordX > 1 &&  (koordY == 0 || this.state.stanja[koordY-1][koordX-1] <= 0)  && this.state.stanja[koordY][koordX-2] <= 0 && this.state.stanja[koordY+1][koordX-1] <= 0) return true;
 						    return false;
 					        break;
 					    case (3):
-					        if (koordX > 1 && (koordY == 0 || this.state.stanja[koordY-1][koordX-1] == 0) && this.state.stanja[koordY][koordX-2] == 0) return true;
+					        if (koordX > 1 && (koordY == 0 || this.state.stanja[koordY-1][koordX-1] <= 0) && this.state.stanja[koordY][koordX-2] <= 0) return true;
 					        return false;
 					        break;
 					    case (4):
-					        if (koordX > 0 && (koordY == 0 || this.state.stanja[koordY-1][koordX-1] == 0)  && this.state.stanja[koordY][koordX-1] == 0 && this.state.stanja[koordY+1][koordX-1] == 0) return true;
+					        if (koordX > 0 && (koordY == 0 || this.state.stanja[koordY-1][koordX-1] <= 0)  && this.state.stanja[koordY][koordX-1] <= 0 && this.state.stanja[koordY+1][koordX-1] <= 0) return true;
 						    return false;
 					        break;
 					    default:
@@ -583,51 +630,51 @@ class Aplikacija extends React.Component {
 			switch (tip) {
 			    case ('I-shape'):
 			        if (orijentacija == 1) {
-						if (koordX < 9 && this.state.stanja[koordY][koordX+3] == 0) return true;
+						if (koordX < 9 && this.state.stanja[koordY][koordX+3] <= 0) return true;
 						return false;
 					} else {
-						if (koordX < 11 && (koordY == 0 || this.state.stanja[koordY-1][koordX+1] == 0) && this.state.stanja[koordY][koordX+1] == 0 && this.state.stanja[koordY+1][koordX+1] == 0 && this.state.stanja[koordY+2][koordX+1] == 0) return true;
+						if (koordX < 11 && (koordY == 0 || this.state.stanja[koordY-1][koordX+1] <= 0) && this.state.stanja[koordY][koordX+1] <= 0 && this.state.stanja[koordY+1][koordX+1] <= 0 && this.state.stanja[koordY+2][koordX+1] <= 0) return true;
 						return false;
 					}
 			        break;
 			    case ('kvadrat'):
-			        if (koordX < 10 && this.state.stanja[koordY][koordX+2] == 0 && this.state.stanja[koordY+1][koordX+2] == 0) return true;
+			        if (koordX < 10 && this.state.stanja[koordY][koordX+2] <= 0 && this.state.stanja[koordY+1][koordX+2] <= 0) return true;
 					return false;
 			        break;
 			    case ('munja'):
 			        if (orijentacija == 1) {
-						if (koordX < 10 && this.state.stanja[koordY][koordX+2] == 0 && this.state.stanja[koordY+1][koordX+1] == 0) return true;
+						if (koordX < 10 && this.state.stanja[koordY][koordX+2] <= 0 && this.state.stanja[koordY+1][koordX+1] <= 0) return true;
 						return false;
 					} else {
-						if (koordX < 10 && (koordY == 0 || this.state.stanja[koordY-1][koordX+1] == 0) && this.state.stanja[koordY][koordX+2] == 0 && this.state.stanja[koordY+1][koordX+2] == 0) return true;
+						if (koordX < 10 && (koordY == 0 || this.state.stanja[koordY-1][koordX+1] <= 0) && this.state.stanja[koordY][koordX+2] <= 0 && this.state.stanja[koordY+1][koordX+2] <= 0) return true;
 						return false;
 					}
 			        break;
 			    case ('obrnuta_munja'):
 			        if (orijentacija == 1) {
-						if (koordX < 10 && this.state.stanja[koordY][koordX+1] == 0 && this.state.stanja[koordY+1][koordX+2] == 0) return true;
+						if (koordX < 10 && this.state.stanja[koordY][koordX+1] <= 0 && this.state.stanja[koordY+1][koordX+2] <= 0) return true;
 						return false;
 					} else {
-						if (koordX < 11 && (koordY == 0 || this.state.stanja[koordY-1][koordX+1] == 0) && this.state.stanja[koordY][koordX+1] == 0 && this.state.stanja[koordY+1][koordX] == 0) return true;
+						if (koordX < 11 && (koordY == 0 || this.state.stanja[koordY-1][koordX+1] <= 0) && this.state.stanja[koordY][koordX+1] <= 0 && this.state.stanja[koordY+1][koordX] <= 0) return true;
 						return false;
 					}
 			        break;
 			    case ('L-shape'):
 			        switch (orijentacija) {
 					    case (1):
-					        if (koordX < 10 && this.state.stanja[koordY][koordX+2] == 0 && this.state.stanja[koordY+1][koordX] == 0) return true;
+					        if (koordX < 10 && this.state.stanja[koordY][koordX+2] <= 0 && this.state.stanja[koordY+1][koordX] <= 0) return true;
 						    return false;
 					        break;	
 					    case (2):
-					        if (koordX < 11 &&  (koordY == 0 || this.state.stanja[koordY-1][koordX+1] == 0)  && this.state.stanja[koordY][koordX+1] == 0 && this.state.stanja[koordY+1][koordX+1] == 0) return true;
+					        if (koordX < 11 &&  (koordY == 0 || this.state.stanja[koordY-1][koordX+1] <= 0)  && this.state.stanja[koordY][koordX+1] <= 0 && this.state.stanja[koordY+1][koordX+1] <= 0) return true;
 						    return false;
 					        break;
 					    case (3):
-					        if (koordX < 10 && (koordY == 0 || this.state.stanja[koordY-1][koordX+2] == 0) && this.state.stanja[koordY][koordX+2] == 0) return true;
+					        if (koordX < 10 && (koordY == 0 || this.state.stanja[koordY-1][koordX+2] <= 0) && this.state.stanja[koordY][koordX+2] <= 0) return true;
 					        return false;
 					        break;
 					    case (4):
-					        if (koordX < 10 &&  (koordY == 0 || this.state.stanja[koordY-1][koordX+1] == 0)  && this.state.stanja[koordY][koordX+1] == 0 && this.state.stanja[koordY+1][koordX+2] == 0) return true;
+					        if (koordX < 10 &&  (koordY == 0 || this.state.stanja[koordY-1][koordX+1] <= 0)  && this.state.stanja[koordY][koordX+1] <= 0 && this.state.stanja[koordY+1][koordX+2] <= 0) return true;
 						    return false;
 					        break;
 					    default:
@@ -637,19 +684,19 @@ class Aplikacija extends React.Component {
 			    case ('obrL-shape'):
 			        switch (orijentacija) {
 					    case (1):
-					        if (koordX < 10 && this.state.stanja[koordY][koordX+2] == 0 && this.state.stanja[koordY+1][koordX+2] == 0) return true;
+					        if (koordX < 10 && this.state.stanja[koordY][koordX+2] <= 0 && this.state.stanja[koordY+1][koordX+2] <= 0) return true;
 						    return false;
 					        break;	
 					    case (2):
-					        if (koordX < 11 &&  (koordY == 0 || this.state.stanja[koordY-1][koordX+1] == 0)  && this.state.stanja[koordY][koordX+1] == 0 && this.state.stanja[koordY+1][koordX+1] == 0) return true;
+					        if (koordX < 11 &&  (koordY == 0 || this.state.stanja[koordY-1][koordX+1] <= 0)  && this.state.stanja[koordY][koordX+1] <= 0 && this.state.stanja[koordY+1][koordX+1] <= 0) return true;
 						    return false;
 					        break;
 					    case (3):
-					        if (koordX < 10 && (koordY == 0 || this.state.stanja[koordY-1][koordX] == 0) && this.state.stanja[koordY][koordX+2] == 0) return true;
+					        if (koordX < 10 && (koordY == 0 || this.state.stanja[koordY-1][koordX] <= 0) && this.state.stanja[koordY][koordX+2] <= 0) return true;
 					        return false;
 					        break;
 					    case (4):
-					        if (koordX < 10 &&  (koordY == 0 || this.state.stanja[koordY-1][koordX+2] == 0)  && this.state.stanja[koordY][koordX+1] == 0 && this.state.stanja[koordY+1][koordX+1] == 0) return true;
+					        if (koordX < 10 &&  (koordY == 0 || this.state.stanja[koordY-1][koordX+2] <= 0)  && this.state.stanja[koordY][koordX+1] <= 0 && this.state.stanja[koordY+1][koordX+1] <= 0) return true;
 						    return false;
 					        break;
 					    default:
@@ -659,19 +706,19 @@ class Aplikacija extends React.Component {
 			    case ('T-shape'):
 			        switch (orijentacija) {
 					    case (1):
-					        if (koordX < 10 && this.state.stanja[koordY][koordX+2] == 0 && this.state.stanja[koordY+1][koordX+1] == 0) return true;
+					        if (koordX < 10 && this.state.stanja[koordY][koordX+2] <= 0 && this.state.stanja[koordY+1][koordX+1] <= 0) return true;
 						    return false;
 					        break;	
 					    case (2):
-					        if (koordX < 11 &&  (koordY == 0 || this.state.stanja[koordY-1][koordX+1] == 0)  && this.state.stanja[koordY][koordX+1] == 0 && this.state.stanja[koordY+1][koordX+1] == 0) return true;
+					        if (koordX < 11 &&  (koordY == 0 || this.state.stanja[koordY-1][koordX+1] <= 0)  && this.state.stanja[koordY][koordX+1] <= 0 && this.state.stanja[koordY+1][koordX+1] <= 0) return true;
 						    return false;
 					        break;
 					    case (3):
-					        if (koordX < 10 && (koordY == 0 || this.state.stanja[koordY-1][koordX+1] == 0) && this.state.stanja[koordY][koordX+2] == 0) return true;
+					        if (koordX < 10 && (koordY == 0 || this.state.stanja[koordY-1][koordX+1] <= 0) && this.state.stanja[koordY][koordX+2] <= 0) return true;
 					        return false;
 					        break;
 					    case (4):
-					        if (koordX < 10 && (koordY == 0 || this.state.stanja[koordY-1][koordX+1] == 0)  && this.state.stanja[koordY][koordX+2] == 0 && this.state.stanja[koordY+1][koordX+1] == 0) return true;
+					        if (koordX < 10 && (koordY == 0 || this.state.stanja[koordY-1][koordX+1] <= 0)  && this.state.stanja[koordY][koordX+2] <= 0 && this.state.stanja[koordY+1][koordX+1] <= 0) return true;
 						    return false;
 					        break;
 					    default:
@@ -684,41 +731,48 @@ class Aplikacija extends React.Component {
 		}	
 	}
 	
-	provjeriDoljeObjekt() {  // vraca true ako se moze objekt pomaknuti prema dolje
-		var {koordX, koordY, tip, orijentacija} = {...this.state.objekt};
+	provjeriDoljeObjekt(KoordX, KoordY, Tip, Orijentacija) {  // vraca true ako se moze objekt pomaknuti prema dolje
+		
+		if (typeof KoordX == "undefined") {
+			var {koordX, koordY, tip, orijentacija} = {...this.state.objekt};
+			//console.log("nedefiniran je tip");
+		} else {
+		    var [koordX, koordY, tip, orijentacija] = [KoordX, KoordY, Tip, Orijentacija];
+		    //console.log("ppodaci: " + koordX + " / " + koordY + " / " + tip + " / " + orijentacija);
+		}
 		switch (tip) {
 			case "I-shape":
                 if (koordY >= 19) return false;
                 if (orijentacija == 1) {
-			        if (this.state.stanja[koordY+1][koordX-1] == 0 && this.state.stanja[koordY+1][koordX] == 0 && this.state.stanja[koordY+1][koordX+1] == 0 && this.state.stanja[koordY+1][koordX+2] == 0) return true;
+			        if (this.state.stanja[koordY+1][koordX-1] <= 0 && this.state.stanja[koordY+1][koordX] <= 0 && this.state.stanja[koordY+1][koordX+1] <= 0 && this.state.stanja[koordY+1][koordX+2] <= 0) return true;
 			        return false;
 		        } else {
 			        if (koordY >= 17) return false;
-			        if (this.state.stanja[koordY+3][koordX] == 0) return true;
+			        if (this.state.stanja[koordY+3][koordX] <= 0) return true;
 			        return false;
 		        }
 		        break;
 		    case "kvadrat":
 		        if (koordY >= 18) return false;
-		        if (this.state.stanja[koordY+2][koordX] == 0 && this.state.stanja[koordY+2][koordX+1] == 0) return true;
+		        if (this.state.stanja[koordY+2][koordX] <= 0 && this.state.stanja[koordY+2][koordX+1] <= 0) return true;
 		        return false;
 		    case "munja":
 		        if (koordY >= 18) return false;
 		        if (orijentacija == 1) {
-			        if (this.state.stanja[koordY+2][koordX-1] == 0 && this.state.stanja[koordY+2][koordX] == 0 && this.state.stanja[koordY+1][koordX+1] == 0) return true;
+			        if (this.state.stanja[koordY+2][koordX-1] <= 0 && this.state.stanja[koordY+2][koordX] <= 0 && this.state.stanja[koordY+1][koordX+1] <= 0) return true;
 			        return false;
 		        } else { 
-			        if (this.state.stanja[koordY+1][koordX] == 0 && this.state.stanja[koordY+2][koordX+1] == 0) return true;
+			        if (this.state.stanja[koordY+1][koordX] <= 0 && this.state.stanja[koordY+2][koordX+1] <= 0) return true;
 			        return false;
 		        }
 		        break;
 		    case "obrnuta_munja":
 		        if (koordY >= 18) return false;
 		        if (orijentacija == 1) {
-			        if (this.state.stanja[koordY+1][koordX-1] == 0 && this.state.stanja[koordY+2][koordX] == 0 && this.state.stanja[koordY+2][koordX+1] == 0) return true;
+			        if (this.state.stanja[koordY+1][koordX-1] <= 0 && this.state.stanja[koordY+2][koordX] <= 0 && this.state.stanja[koordY+2][koordX+1] <= 0) return true;
 			        return false;
 		        } else { 
-			        if (this.state.stanja[koordY+2][koordX-1] == 0 && this.state.stanja[koordY+1][koordX] == 0) return true;
+			        if (this.state.stanja[koordY+2][koordX-1] <= 0 && this.state.stanja[koordY+1][koordX] <= 0) return true;
 			        return false;
 		        }
 		        break;
@@ -726,20 +780,20 @@ class Aplikacija extends React.Component {
 		        switch (orijentacija) {
 					case 1:
 					    if (koordY >= 18) return false;
-					    if (this.state.stanja[koordY+2][koordX-1] == 0 && this.state.stanja[koordY+1][koordX] == 0 && this.state.stanja[koordY+1][koordX+1] == 0) return true;
+					    if (this.state.stanja[koordY+2][koordX-1] <= 0 && this.state.stanja[koordY+1][koordX] <= 0 && this.state.stanja[koordY+1][koordX+1] <= 0) return true;
 			            return false;
 					    break;
 					case 2:
 					    if (koordY >= 18) return false;
-					    if (this.state.stanja[koordY][koordX-1] == 0 && this.state.stanja[koordY+2][koordX] == 0) return true;
+					    if (this.state.stanja[koordY][koordX-1] <= 0 && this.state.stanja[koordY+2][koordX] <= 0) return true;
 					    break;
 					case 3:
 					    if (koordY >= 19) return false;
-					    if (this.state.stanja[koordY+1][koordX-1] == 0 && this.state.stanja[koordY+1][koordX] == 0 && this.state.stanja[koordY+1][koordX+1] == 0) return true;
+					    if (this.state.stanja[koordY+1][koordX-1] <= 0 && this.state.stanja[koordY+1][koordX] <= 0 && this.state.stanja[koordY+1][koordX+1] <= 0) return true;
 					    break;
 					case 4:
 					    if (koordY >= 18) return false;
-					    if (this.state.stanja[koordY+2][koordX] == 0 && this.state.stanja[koordY+2][koordX+1] == 0) return true;
+					    if (this.state.stanja[koordY+2][koordX] <= 0 && this.state.stanja[koordY+2][koordX+1] <= 0) return true;
 					    break;
 					default:
 					    alert("pogresna orijentacija");
@@ -749,20 +803,20 @@ class Aplikacija extends React.Component {
 		        switch (orijentacija) {
 					case 1:
 					    if (koordY >= 18) return false;
-					    if (this.state.stanja[koordY+1][koordX-1] == 0 && this.state.stanja[koordY+1][koordX] == 0 && this.state.stanja[koordY+2][koordX+1] == 0) return true;
+					    if (this.state.stanja[koordY+1][koordX-1] <= 0 && this.state.stanja[koordY+1][koordX] <= 0 && this.state.stanja[koordY+2][koordX+1] <= 0) return true;
 			            return false;
 					    break;
 					case 2:
 					    if (koordY >= 18) return false;
-					    if (this.state.stanja[koordY+2][koordX-1] == 0 && this.state.stanja[koordY+2][koordX] == 0) return true;
+					    if (this.state.stanja[koordY+2][koordX-1] <= 0 && this.state.stanja[koordY+2][koordX] <= 0) return true;
 					    break;
 					case 3:
 					    if (koordY >= 19) return false;
-					    if (this.state.stanja[koordY+1][koordX-1] == 0 && this.state.stanja[koordY+1][koordX] == 0 && this.state.stanja[koordY+1][koordX+1] == 0) return true;
+					    if (this.state.stanja[koordY+1][koordX-1] <= 0 && this.state.stanja[koordY+1][koordX] <= 0 && this.state.stanja[koordY+1][koordX+1] <= 0) return true;
 					    break;
 					case 4:
 					    if (koordY >= 18) return false;
-					    if (this.state.stanja[koordY+2][koordX] == 0 && this.state.stanja[koordY][koordX+1] == 0) return true;
+					    if (this.state.stanja[koordY+2][koordX] <= 0 && this.state.stanja[koordY][koordX+1] <= 0) return true;
 					    break;
 					default:
 					    alert("pogresna orijentacija");
@@ -772,116 +826,124 @@ class Aplikacija extends React.Component {
 		        switch (orijentacija) {
 					case 1:
 					    if (koordY >= 18) return false;
-					    if (this.state.stanja[koordY+1][koordX-1] == 0 && this.state.stanja[koordY+2][koordX] == 0 && this.state.stanja[koordY+1][koordX+1] == 0) return true;
+					    if (this.state.stanja[koordY+1][koordX-1] <= 0 && this.state.stanja[koordY+2][koordX] <= 0 && this.state.stanja[koordY+1][koordX+1] <= 0) return true;
 			            return false;
 					    break;
 					case 2:
 					    if (koordY >= 18) return false;
-					    if (this.state.stanja[koordY+1][koordX-1] == 0 && this.state.stanja[koordY+2][koordX] == 0) return true;
+					    if (this.state.stanja[koordY+1][koordX-1] <= 0 && this.state.stanja[koordY+2][koordX] <= 0) return true;
 					    break;
 					case 3:
 					    if (koordY >= 19) return false;
-					    if (this.state.stanja[koordY+1][koordX-1] == 0 && this.state.stanja[koordY+1][koordX] == 0 && this.state.stanja[koordY+1][koordX+1] == 0) return true;
+					    if (this.state.stanja[koordY+1][koordX-1] <= 0 && this.state.stanja[koordY+1][koordX] <= 0 && this.state.stanja[koordY+1][koordX+1] <= 0) return true;
 					    break;
 					case 4:
 					    if (koordY >= 18) return false;
-					    if (this.state.stanja[koordY+2][koordX] == 0 && this.state.stanja[koordY+1][koordX+1] == 0) return true;
+					    if (this.state.stanja[koordY+2][koordX] <= 0 && this.state.stanja[koordY+1][koordX+1] <= 0) return true;
 					    break;
 					default:
 					    alert("pogresna orijentacija");
 				}
 		        break;
 		    default:
-		        alert("cini se da imas pogresan tip u provjeri");
+		        alert("cini se da imas pogresan tip u provjeri " + tip);
 		}
 	}
 
 	
-	nacrtajObjekt({tip, koordX, koordY, orijentacija, sw}) {
+	nacrtajObjekt({tip, koordX, koordY, orijentacija, sw, sw1}) {
 		//ova funkcija za sw true crta objekt dane orijentacije i danog tipa i koordinata, za false brise
+		//za sw1=true crta projekciju, za false/faulty crta obican objekt
 		var vr = 0;
+		if (sw1) {
+			if (sw) {
+			    vr = -1;
+			} else {
+				vr = 0;
+			}
+		}
 		//console.log("ucitane vrijednosti: "+ tip + " / " + koordX  + " / " + koordY + " / " + orijentacija  + " / " +sw);
 		switch (tip) {
 			case "I-shape":
-			    if (sw) vr = 2;
+			    if (sw && !sw1) vr = 2;
 		   	    if (orijentacija == 1) {
-					this.promijeniPolje([[koordX-1, koordY, vr],[koordX, koordY, vr],[koordX+1, koordY, vr],[koordX+2, koordY, vr]]);
+					var elementi = [[koordX-1, koordY, vr],[koordX, koordY, vr],[koordX+1, koordY, vr],[koordX+2, koordY, vr]];
 				} else {
-					    this.promijeniPolje([[koordX, koordY-1, vr],[koordX, koordY, vr],[koordX, koordY+1, vr],[koordX, koordY+2, vr]]);
+					var elementi = [[koordX, koordY-1, vr],[koordX, koordY, vr],[koordX, koordY+1, vr],[koordX, koordY+2, vr]];
 				}
 				break;
 			case "kvadrat":
-			    if (sw) vr = 1;
-			    this.promijeniPolje([[koordX, koordY, vr],[koordX+1, koordY, vr],[koordX, koordY+1, vr],[koordX+1, koordY+1, vr]]);
+			    if (sw && !sw1) vr = 1;
+			    var elementi = [[koordX, koordY, vr],[koordX+1, koordY, vr],[koordX, koordY+1, vr],[koordX+1, koordY+1, vr]];
 			    break;
 			case "munja":
-			    if (sw) vr = 3;
+			    if (sw && !sw1) vr = 3;
 		   	    if (orijentacija == 1) {
-					this.promijeniPolje([[koordX-1, koordY+1, vr],[koordX, koordY+1, vr],[koordX, koordY, vr],[koordX+1, koordY, vr]]);
+					var elementi = [[koordX-1, koordY+1, vr],[koordX, koordY+1, vr],[koordX, koordY, vr],[koordX+1, koordY, vr]];
 				} else {
-					    this.promijeniPolje([[koordX, koordY-1, vr],[koordX, koordY, vr],[koordX+1, koordY, vr],[koordX+1, koordY+1, vr]]);
+					var elementi = [[koordX, koordY-1, vr],[koordX, koordY, vr],[koordX+1, koordY, vr],[koordX+1, koordY+1, vr]];
 				}
 				break;
 			case "obrnuta_munja":
-			    if (sw) vr = 4;
+			    if (sw && !sw1) vr = 4;
 		   	    if (orijentacija == 1) {
-					this.promijeniPolje([[koordX-1, koordY, vr],[koordX, koordY, vr],[koordX, koordY+1, vr],[koordX+1, koordY+1, vr]]);
+					var elementi = [[koordX-1, koordY, vr],[koordX, koordY, vr],[koordX, koordY+1, vr],[koordX+1, koordY+1, vr]];
 				} else {
-					    this.promijeniPolje([[koordX, koordY-1, vr],[koordX, koordY, vr],[koordX-1, koordY, vr],[koordX-1, koordY+1, vr]]);
+					var elementi = [[koordX, koordY-1, vr],[koordX, koordY, vr],[koordX-1, koordY, vr],[koordX-1, koordY+1, vr]];
 				}
 				break;
 		    case "L-shape":
-		        if (sw) vr = 5;
+		        if (sw && !sw1) vr = 5;
 		        switch (orijentacija) {
 					case 1:
-					    this.promijeniPolje([[koordX-1, koordY+1, vr],[koordX-1, koordY, vr],[koordX, koordY, vr],[koordX+1, koordY, vr]]);
+					    var elementi = [[koordX-1, koordY+1, vr],[koordX-1, koordY, vr],[koordX, koordY, vr],[koordX+1, koordY, vr]];
 					    break;
 					case 2:
-					    this.promijeniPolje([[koordX-1, koordY-1, vr],[koordX, koordY-1, vr],[koordX, koordY, vr],[koordX, koordY+1, vr]]);
+					    var elementi = [[koordX-1, koordY-1, vr],[koordX, koordY-1, vr],[koordX, koordY, vr],[koordX, koordY+1, vr]];
 					    break;
 					case 3:
-					    this.promijeniPolje([[koordX-1, koordY, vr],[koordX, koordY, vr],[koordX+1, koordY, vr],[koordX+1, koordY-1, vr]]);
+					    var elementi = [[koordX-1, koordY, vr],[koordX, koordY, vr],[koordX+1, koordY, vr],[koordX+1, koordY-1, vr]];
 					    break;
 					case 4:
-					    this.promijeniPolje([[koordX, koordY-1, vr],[koordX, koordY, vr],[koordX, koordY+1, vr],[koordX+1, koordY+1, vr]]);
+					    var elementi = [[koordX, koordY-1, vr],[koordX, koordY, vr],[koordX, koordY+1, vr],[koordX+1, koordY+1, vr]];
 					    break;
 					default:
 					    alert("pogreska u tipu kod crtanja");    
 				}
 				break;
 			case "obrL-shape":
-		        if (sw) vr = 6;
+		        if (sw && !sw1) vr = 6;
 		        switch (orijentacija) {
 					case 1:
-					    this.promijeniPolje([[koordX-1, koordY, vr],[koordX, koordY, vr],[koordX+1, koordY, vr],[koordX+1, koordY+1, vr]]);
+					    var elementi = [[koordX-1, koordY, vr],[koordX, koordY, vr],[koordX+1, koordY, vr],[koordX+1, koordY+1, vr]];
 					    break;
 					case 2:
-					    this.promijeniPolje([[koordX-1, koordY+1, vr],[koordX, koordY+1, vr],[koordX, koordY, vr],[koordX, koordY-1, vr]]);
+					    var elementi = [[koordX-1, koordY+1, vr],[koordX, koordY+1, vr],[koordX, koordY, vr],[koordX, koordY-1, vr]];
 					    break;
 					case 3:
-					    this.promijeniPolje([[koordX-1, koordY-1, vr],[koordX-1, koordY, vr],[koordX, koordY, vr],[koordX+1, koordY, vr]]);
+					    var elementi = [[koordX-1, koordY-1, vr],[koordX-1, koordY, vr],[koordX, koordY, vr],[koordX+1, koordY, vr]];
 					    break;
 					case 4:
-					    this.promijeniPolje([[koordX, koordY+1, vr],[koordX, koordY, vr],[koordX, koordY-1, vr],[koordX+1, koordY-1, vr]]);
+					    var elementi = [[koordX, koordY+1, vr],[koordX, koordY, vr],[koordX, koordY-1, vr],[koordX+1, koordY-1, vr]];
 					    break;
 					default:
 					    alert("pogreska u tipu kod crtanja");    
 				}
 				break;
 		    case "T-shape":
-		        if (sw) vr = 7;
+		        if (sw && !sw1) vr = 7;
 		        switch (orijentacija) {
 					case 1:
-					    this.promijeniPolje([[koordX-1, koordY, vr],[koordX, koordY, vr],[koordX+1, koordY, vr],[koordX, koordY+1, vr]]);
+					    var elementi = [[koordX-1, koordY, vr],[koordX, koordY, vr],[koordX+1, koordY, vr],[koordX, koordY+1, vr]];
 					    break;
 					case 2:
-					    this.promijeniPolje([[koordX-1, koordY, vr],[koordX, koordY, vr],[koordX, koordY-1, vr],[koordX, koordY+1, vr]]);
+					    var elementi = [[koordX-1, koordY, vr],[koordX, koordY, vr],[koordX, koordY-1, vr],[koordX, koordY+1, vr]];
 					    break;
 					case 3:
-					    this.promijeniPolje([[koordX-1, koordY, vr],[koordX, koordY, vr],[koordX+1, koordY, vr],[koordX, koordY-1, vr]]);
+					    var elementi = [[koordX-1, koordY, vr],[koordX, koordY, vr],[koordX+1, koordY, vr],[koordX, koordY-1, vr]];
 					    break;
 					case 4:
-					    this.promijeniPolje([[koordX, koordY-1, vr],[koordX, koordY, vr],[koordX, koordY+1, vr],[koordX+1, koordY, vr]]);
+					    var elementi = [[koordX, koordY-1, vr],[koordX, koordY, vr],[koordX, koordY+1, vr],[koordX+1, koordY, vr]];
 					    break;
 					default:
 					    alert("pogreska u tipu kod crtanja");    
@@ -890,6 +952,17 @@ class Aplikacija extends React.Component {
 			default:
 			    alert("cini se da imas pogresan tip za crtanje " + tip);
 		}
+	
+		if (sw1) {
+			if (sw) {
+			    elementi = elementi.filter((el) => {if (this.state.stanja[el[1]][el[0]] <= 0) return true; return false;});
+			    console.log("elementi koje pises:" + elementi);
+			} else {
+				elementi = elementi.filter((el) => {if (this.state.stanja[el[1]][el[0]] <= 0) return true; return false;});
+				console.log("elementi koje brises:" + elementi);
+			}
+		}
+		this.promijeniPolje(elementi);
 	}
 	
 	inicirajObjekt(tip) {
@@ -932,6 +1005,7 @@ class Aplikacija extends React.Component {
 		    default:
 		        alert("pogreska sa unosom tipa");
 		}
+		this.projecirajObjekt();
 	}
 	
 	promijeniPolje(podaci) {
@@ -953,7 +1027,7 @@ class Aplikacija extends React.Component {
 		for (let i = 0; i < 20; i++) {
 			let sw = true;
 			for (let j = 0; j < 12; j++) {
-				if (this.state.stanja[i][j] == 0) {
+				if (this.state.stanja[i][j] <= 0) {
 					sw = false;
 					break;
 				}
@@ -968,7 +1042,7 @@ class Aplikacija extends React.Component {
 		console.log("krenula animacije");
 		for (let i = 0; i < linije.length; i++) {
 			for (let j = 0; j < 12; j++) {
-				pp.push([j, linije[i], -1]);
+				pp.push([j, linije[i], 8]);
 			}
 		}
 		console.log("krenula animacije " + pp);
@@ -1000,6 +1074,7 @@ class Aplikacija extends React.Component {
 		
 		this.setState({stanja: rez, score: sco, brLinija: brlin});
 		this.nacrtajObjekt({...this.state.objekt, sw: true});
+		this.projecirajObjekt();
 		
 		function izracunajScore(level, score, brlinija) {
             switch (brlinija) {
@@ -1021,6 +1096,15 @@ class Aplikacija extends React.Component {
        }
 	}
 	
+	ugradiObjekt() {
+		console.log("pune linije: " + this.provjeriPuneLinije());
+	    let rr = this.provjeriPuneLinije();
+		if (rr.length != 0)  this.animirajPuneLinije(rr);
+			    
+	    this.inicirajObjekt(this.state.nextObjects[0]);  // I-shape, kvadrat, munja, obrnuta_munja, L-shape, obrL-shape, T-shape
+		this.sljedeciRandomObjekt();
+	}
+	
 	pritisakGumba(ev) {
 		ev.preventDefault();
 		console.log("upravo si pritisnuo gumb " + ev.code);
@@ -1038,12 +1122,10 @@ class Aplikacija extends React.Component {
 			    this.rotirajObjekt();    
 			    break;
 			case "KeyD":
-			    console.log("pune linije: " + this.provjeriPuneLinije());
-			    let rr = this.provjeriPuneLinije();
-			    if (rr.length != 0)  this.animirajPuneLinije(rr);
-			    
-			    this.inicirajObjekt(this.state.nextObjects[0]);  // I-shape, kvadrat, munja, obrnuta_munja, L-shape, obrL-shape, T-shape
-		        this.sljedeciRandomObjekt();
+			    this.ugradiObjekt();
+		        break;
+		    case "Space":
+		        this.brzoSpustiObjekt();
 		        break;
 		}
 	}

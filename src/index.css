@@ -75,6 +75,7 @@
 .polje {
     box-sizing: border-box;
     border-width: 1px;
+    border-radius: 3px;
     border-style: solid;
     border-color: #111111;
 }
