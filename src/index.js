@@ -20,7 +20,7 @@ function inicirajPolje(x, y, vr) { // inicira polje [x][y] sa vrijednostima vr
 	return rez;
 }
 
-function BrDisplay({naslov, broj}) {
+function BrDispla({naslov, broj}) {
 	return (
 	    <div id="brdisplay">
 	        <p id="brdisplay-naslov">{naslov} {broj}</p>
@@ -28,7 +28,9 @@ function BrDisplay({naslov, broj}) {
 	)
 }
 
-function Gumb() {
+var BrDisplay = React.memo(BrDispla);
+
+function Gum() {
 	return (
 	    <div id="gumb">
 	        <p id="gumb-p">Start Game</p>
@@ -36,7 +38,9 @@ function Gumb() {
 	)
 }
 
-function NextDisplay({sljedeci}) {
+var Gumb = React.memo(Gum);
+
+function NextDispla({sljedeci}) {
 // ova funkcija crta sljedece objekte koji ce pasti. sljedeci je polje sa imenima objekata. ako ima vise od
 // cetiri objekta, ova funkcija prikazuje samo prva cetiri. Ako ne zelis prikazati ni jedan objekt, postavi
 // property sljedeci na prazno polje, []
@@ -61,13 +65,12 @@ function NextDisplay({sljedeci}) {
 	)
 }
 
+var NextDisplay = React.memo(NextDispla);
 
 
-
-function NextObjekt({objekt}) {
+function NextObjek({objekt}) {
 
 	const [r1, r2, r3, r4, r5, r6, r7, r8] = [React.useRef(), React.useRef(), React.useRef(), React.useRef(), React.useRef(), React.useRef(), React.useRef(), React.useRef()];
-	
 	function nacrtaj(polja, boja) {
 		for (let el of polja) {
 			switch (el) {
@@ -151,6 +154,8 @@ function NextObjekt({objekt}) {
 	)
 }
 
+var NextObjekt = React.memo(NextObjek);
+
 class Aplikacija extends React.Component {
 	
 	constructor(props) {
@@ -166,6 +171,20 @@ class Aplikacija extends React.Component {
 			brLinija: 0,
 			score: 0
 		}
+		
+		//ovdje slijede autoRepeat/autoDelay postavke, zatim prekidaci za eventhandlere i slicno.
+		this.horizontalniPomak = "n";  // aktualno stanje za n je nema pomaka, l je lijevi, d je desni pomak
+		this.autoRepeat = 60; // autorepeat u msec za lijevi/desni pomak u msec
+		this.autoDelay = 800;  // autodelay autorepeata za lijevi/desni pomak u msec
+		
+		this.vertikalniPomak = "n";  // aktualno stanje za n je nema pomaka, za d - da, ima pomaka
+		this.autoRepeatV = 40; // autorepeat u msec za lijevi/desni pomak u msec
+		this.autoDelayV = 170;  // autodelay autorepeata za lijevi/desni pomak u msec
+		
+		this.rotirajSw = true;  // prekidac koji onemogucuje autorotaciju
+		
+		this.ref1 = null;
+		this.ref2 = null;
 		
 		this.promijeniPolje = this.promijeniPolje.bind(this);
 		this.inicirajObjekt = this.inicirajObjekt.bind(this);
@@ -185,6 +204,8 @@ class Aplikacija extends React.Component {
 		this.animirajPuneLinije = this.animirajPuneLinije.bind(this);
 		this.ugradiObjekt = this.ugradiObjekt.bind(this);
 		this.projecirajObjekt = this.projecirajObjekt.bind(this);
+		this.autorepeatFun = this.autoRepeatFun.bind(this);
+		this.autorepeatFun1 = this.autoRepeatFun1.bind(this);
 	}
 	
 	componentDidMount() {
@@ -311,8 +332,8 @@ class Aplikacija extends React.Component {
 	sljedeciRandomObjekt() {
 		var noviNext = [...this.state.nextObjects];
 		noviNext.push(["I-shape", "kvadrat", "munja", "obrnuta_munja", "L-shape", "obrL-shape", "T-shape"][Math.floor(Math.random()*7)]);
+		//noviNext.push("T-shape");
 		if (noviNext.length > 4)  noviNext.shift();
-		//console.log("noviNext je " + noviNext);
 		this.setState({nextObjects: noviNext});
 	}
 	
@@ -346,12 +367,12 @@ class Aplikacija extends React.Component {
 	
 	projecirajObjekt() {  // ova funkcija crta projekciju objekta na dnu displaya
 		if (this.state.projekcijaSw) {
-			console.log("POKRENUO si projekciju objekta");
+			//console.log("POKRENUO si projekciju objekta");
 			var noviObjekt = null;
 			if (this.state.projekcija.tip !== null) {
 				noviObjekt = {...this.state.projekcija};
 		        this.nacrtajObjekt({...noviObjekt, sw: false, sw1: true});
-		        console.log("if pokrenut");		
+		        //console.log("if pokrenut");		
 			}
 		    var noviObjekt = {...this.state.objekt};	
 			while (this.provjeriDoljeObjekt(noviObjekt.koordX, noviObjekt.koordY, noviObjekt.tip, noviObjekt.orijentacija)) {
@@ -364,8 +385,8 @@ class Aplikacija extends React.Component {
 	}
 	
 	
-	rotirajObjekt() {
-		if (this.provjeriRotacijuObjekt()) {
+	rotirajObjekt(sw) {   // za sw true rotiraj u obrnutom smjeru od kazaljke na satu, za false/faulty/nepostojeci rotiraj u smjeru kazaljke na satu
+		if (this.provjeriRotacijuObjekt(sw)) {
 		    var {koordX, koordY, tip, orijentacija} = {...this.state.objekt};
 		    var noviObjekt = {...this.state.objekt};
 		    this.nacrtajObjekt({...noviObjekt, sw: false});  
@@ -382,11 +403,19 @@ class Aplikacija extends React.Component {
 		        case "L-shape":
 		        case "obrL-shape":  
 		        case "T-shape":  
-		            if (orijentacija < 4) {
-						orijentacija += 1;
+		            if (sw) {
+						if (orijentacija > 1) {
+							orijentacija -= 1;
+						} else {
+							orijentacija = 4;
+						}
 					} else {
-						orijentacija = 1;
-					}
+		                if (orijentacija < 4) {
+						    orijentacija += 1;
+					    } else {
+						    orijentacija = 1;
+					    }
+				    }
 					noviObjekt.orijentacija = orijentacija;
 		            break;
 		        case "kvadrat":  // nikada se ne javlja zato sto provjeriRotacijuObjekt za njega vraca false
@@ -416,10 +445,17 @@ class Aplikacija extends React.Component {
 		} 
 	}
 	
-	provjeriRotacijuObjekt() {
+	provjeriRotacijuObjekt(sw) {  // za sw false/faulty/nepostojeci provjeravas rotaciju u smjeru kazaljke na satu, za true u smjeru suprotnom od kazaljke na satu
 		var {koordX, koordY, tip, orijentacija} = {...this.state.objekt};
+		if (sw) {
+			console.log("truthy");
+			tip += "-suprotni";
+		} else {
+			console.log("faulty");
+		}
 		switch (tip) {
 			case ("I-shape"):
+			case ("I-shape-suprotni"):
 			    if (orijentacija == 1) {
 					if (koordY <= 17 && (koordY == 0  ||  this.state.stanja[koordY-1][koordX] <= 0) && this.state.stanja[koordY+1][koordX] <= 0 && this.state.stanja[koordY+2][koordX] <= 0) return true;
 					return false;
@@ -430,8 +466,10 @@ class Aplikacija extends React.Component {
 				}
 			    break;
 			case ("kvadrat"):
+			case ("kvadrat-suprotni"):
 			    return false;
 			case ("munja"):
+			case ("munja-suprotni"):
 			    if (orijentacija == 1) {
 					if ( (koordY == 0  ||  this.state.stanja[koordY-1][koordX] <= 0) && this.state.stanja[koordY+1][koordX+1] <= 0) return true;
 					return false;
@@ -442,6 +480,7 @@ class Aplikacija extends React.Component {
 				}
 			    break;
 			case ("obrnuta_munja"):
+			case ("obrnuta_munja-suprotni"):
 			    if (orijentacija == 1) {
 					if ( (koordY == 0  ||  this.state.stanja[koordY-1][koordX] <= 0) && this.state.stanja[koordY+1][koordX-1] <= 0) return true;
 					return false;
@@ -473,6 +512,28 @@ class Aplikacija extends React.Component {
 					    alert("pogresna orijentacija L-shapea");
 				}
 			    break;
+			case ("L-shape-suprotni"):
+			    switch (orijentacija) {
+					case (1):
+					    if ( (koordY == 0 || this.state.stanja[koordY-1][koordX] <= 0)  && this.state.stanja[koordY+1][koordX] <= 0 && this.state.stanja[koordY+1][koordX+1] <= 0) return true;
+					    return false;
+					    break;
+					case (2):
+					    if (koordX <= 10 && this.state.stanja[koordY+1][koordX-1] <= 0 && this.state.stanja[koordY][koordX-1] <= 0 && this.state.stanja[koordY][koordX+1] <= 0) return true;
+					    return false;
+					    break;
+					case (3):
+					    if (koordY <= 18 && (koordY == 0  ||  (this.state.stanja[koordY-1][koordX-1] <= 0 && this.state.stanja[koordY-1][koordX] <= 0 )  )  && this.state.stanja[koordY+1][koordX] <= 0) return true;
+					    return false;
+					    break;
+					case (4):
+					    if (koordX >= 1 && (koordY == 0 || this.state.stanja[koordY-1][koordX+1] <= 0)  && this.state.stanja[koordY][koordX+1] <= 0 && this.state.stanja[koordY][koordX-1] <= 0) return true;
+					    return false;
+					    break;
+					default:
+					    alert("pogresna orijentacija L-shapea");
+				}
+			    break;
 			case ("obrL-shape"):
 			    switch (orijentacija) {
 					case (1):
@@ -489,6 +550,28 @@ class Aplikacija extends React.Component {
 					    break;
 					case (4):
 					    if (koordX >= 1 && this.state.stanja[koordY][koordX-1] <= 0 && this.state.stanja[koordY][koordX+1] <= 0 && this.state.stanja[koordY+1][koordX+1] <= 0) return true;
+					    return false;
+					    break;
+					default:
+					    alert("pogresna orijentacija L-shapea");
+				}
+			    break;
+			case ("obrL-shape-suprotni"):
+			    switch (orijentacija) {
+					case (1):
+					    if ( (koordY == 0 || (this.state.stanja[koordY-1][koordX] <= 0 && this.state.stanja[koordY-1][koordX+1] <= 0) ) && this.state.stanja[koordY+1][koordX] <= 0) return true;
+					    return false;
+					    break;
+					case (2):
+					    if (koordX <= 10 && this.state.stanja[koordY][koordX-1] <= 0 && this.state.stanja[koordY][koordX+1] <= 0 && this.state.stanja[koordY+1][koordX+1] <= 0) return true;
+					    return false;
+					    break;
+					case (3):
+					    if (koordY <= 18  &&  (koordY == 0 || this.state.stanja[koordY-1][koordX] <= 0)  && this.state.stanja[koordY+1][koordX] <= 0 && this.state.stanja[koordY+1][koordX-1] <= 0) return true;
+					    return false;
+					    break;
+					case (4):
+					    if (koordX >= 1 && (koordY == 0 || this.state.stanja[koordY-1][koordX-1] <= 0)  && this.state.stanja[koordY][koordX-1] <= 0 && this.state.stanja[koordY][koordX+1] <= 0) return true;
 					    return false;
 					    break;
 					default:
@@ -516,7 +599,29 @@ class Aplikacija extends React.Component {
 					default:
 					    alert("pogresna orijentacija L-shapea");
 				}
-			    break;    
+			    break;
+			case ("T-shape-suprotni"):    
+			    switch (orijentacija) {
+					case (1):
+					    if (koordY == 0 || this.state.stanja[koordY-1][koordX] <= 0)  return true;
+					    return false;
+					    break;
+					case (2):
+					    if (koordX <= 10 && this.state.stanja[koordY][koordX+1] <= 0)  return true;
+					    return false;
+					    break;
+					case (3):
+					    if (koordY <= 18 && this.state.stanja[koordY+1][koordX] <= 0)  return true;
+					    return false;
+					    break;
+					case (4):
+					    if (koordX >= 1 && this.state.stanja[koordY][koordX-1] <= 0)  return true;
+					    return false;
+					    break;
+					default:
+					    alert("pogresna orijentacija L-shapea");
+				}
+			    break;
 			default:
 			    alert("cini se da imas los tip");
 		}
@@ -956,10 +1061,10 @@ class Aplikacija extends React.Component {
 		if (sw1) {
 			if (sw) {
 			    elementi = elementi.filter((el) => {if (this.state.stanja[el[1]][el[0]] <= 0) return true; return false;});
-			    console.log("elementi koje pises:" + elementi);
+			    //console.log("elementi koje pises:" + elementi);
 			} else {
 				elementi = elementi.filter((el) => {if (this.state.stanja[el[1]][el[0]] <= 0) return true; return false;});
-				console.log("elementi koje brises:" + elementi);
+				//console.log("elementi koje brises:" + elementi);
 			}
 		}
 		this.promijeniPolje(elementi);
@@ -1058,6 +1163,7 @@ class Aplikacija extends React.Component {
 	
 	urusiPuneLinije(linije) {
 		this.nacrtajObjekt({...this.state.objekt, sw: false});
+		this.nacrtajObjekt({...this.state.projekcija, sw: false, sw1: true});
 		var rez = JSON.parse(JSON.stringify(this.state.stanja));
 		var redci = [];
 		for (let i = linije.length-1; i > -1; i--) {
@@ -1105,21 +1211,64 @@ class Aplikacija extends React.Component {
 		this.sljedeciRandomObjekt();
 	}
 	
+	autoRepeatFun(fun, arg) {
+		fun(arg);
+		this.ref1 = setTimeout(() => {
+				this.autoRepeatFun(fun, arg);
+			}, this.autoRepeat);
+	}
+	
+	autoRepeatFun1(fun, arg) {
+		fun(arg);
+		this.ref2 = setTimeout(() => {
+				this.autoRepeatFun1(fun, arg);
+			}, this.autoRepeatV);
+	}
+	
 	pritisakGumba(ev) {
 		ev.preventDefault();
 		console.log("upravo si pritisnuo gumb " + ev.code);
 		switch (ev.code) {
 			case "ArrowDown":
-			    this.spustiObjekt();
+			    //this.spustiObjekt();
+			    if (this.vertikalniPomak == "n") {
+					this.vertikalniPomak = "d";
+			        this.spustiObjekt();
+			        this.ref2 = setTimeout(() => {
+						this.autoRepeatFun1(this.spustiObjekt, "");
+					}, this.autoDelayV);
+				}
+			    
 			    break;
 			case "ArrowLeft":
-			    this.pomakniUStranuObjekt("l");
+			    if (this.horizontalniPomak == "n") {
+					this.horizontalniPomak = "l";
+			        this.pomakniUStranuObjekt("l");
+			        this.ref1 = setTimeout(() => {
+						this.autoRepeatFun(this.pomakniUStranuObjekt, "l");
+					}, this.autoDelay);
+				}
 			    break;
 			case "ArrowRight":
-			    this.pomakniUStranuObjekt("r");    
+			    if (this.horizontalniPomak == "n") {
+					this.horizontalniPomak = "r";
+			        this.pomakniUStranuObjekt("r");
+			        this.ref1 = setTimeout(() => {
+						this.autoRepeatFun(this.pomakniUStranuObjekt, "r");
+					}, this.autoDelay);
+				}
 			    break;
 			case "ArrowUp":
-			    this.rotirajObjekt();    
+			    if (this.rotirajSw) {
+					this.rotirajSw = false;
+			        this.rotirajObjekt();    
+				}
+			    break;
+			case "KeyZ":
+			    if (this.rotirajSw) {
+					this.rotirajSw = false;
+			        this.rotirajObjekt(true);    
+				}
 			    break;
 			case "KeyD":
 			    this.ugradiObjekt();
@@ -1131,12 +1280,33 @@ class Aplikacija extends React.Component {
 	}
 	
 	pritisakGumbaUp(ev) {
-		//console.log("upravo si otpustio gumb " + ev.code);
-		//switch (ev.code) {
-		//	case "ArrowDown":
-			    //this.spustiObjekt();
-			    
-		//}
+		console.log("upravo si otpustio gumb " + ev.code);
+		switch (ev.code) {
+			case "ArrowDown":
+			    if (this.vertikalniPomak == "d") {
+					this.vertikalniPomak = "n";
+			        clearTimeout(this.ref2);
+				}
+			    break;  
+			case "ArrowLeft":
+			    if (this.horizontalniPomak == "l") {
+					this.horizontalniPomak = "n";
+			        clearTimeout(this.ref1);
+				}
+			    break;    
+			case "ArrowRight":
+			    if (this.horizontalniPomak == "r") {
+					this.horizontalniPomak = "n";
+			        clearTimeout(this.ref1);
+				}
+			    break;
+			case "ArrowUp":
+			    if (!this.rotirajSw)  this.rotirajSw = true;
+			    break;
+			case "KeyZ":
+			    if (!this.rotirajSw)  this.rotirajSw = true;
+			    break;
+		}
 	}
 }
 
