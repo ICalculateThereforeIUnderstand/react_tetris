@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import "./index.css";
+import { BsArrowCounterclockwise } from "react-icons/bs";
 
 function dodajStilove(el, stilovi) {
 	for (let key in stilovi) {
@@ -18,6 +19,53 @@ function inicirajPolje(x, y, vr) { // inicira polje [x][y] sa vrijednostima vr
 		rez.push(red);
 	}
 	return rez;
+}
+
+function GameOverDisplay({bodovi, startButton, show}) {
+	const  r = React.useRef();
+	const  r1 = React.useRef();
+	console.log("renderao si gameover display");
+    
+    React.useEffect(() => {
+        if (show) {
+		    dodajStilove(r1.current, {display:"flex"});
+	    } else {
+		    dodajStilove(r1.current, {display:"none"});
+	    }
+	
+    }, [show]);
+    
+    React.useEffect(() => {
+			r.current.addEventListener("mouseenter", funn1);
+		    r.current.addEventListener("mouseleave", funn2);
+		    console.log("Postavljam eventove");
+			
+			return (() => {
+				console.log("Uklanjam eventove");
+				r.current.removeEventListener("mouseenter", funn1);
+		        r.current.removeEventListener("mouseleave", funn2);
+		    });
+	}, []);
+		
+    function funn1() {
+		dodajStilove(r.current, {borderColor:"green", backgroundColor:"#555555"});
+	};
+	
+	function funn2() {
+		dodajStilove(r.current, {borderColor:"black", backgroundColor:"#222222"});
+	};
+	
+	return (
+	    <div ref={r1} id="gameover">
+	        <p id="gameover-naslov">Game Over!</p>
+	        <p id="gameover-score">Your Score: <span id="gameover-bodovi">{bodovi}</span></p>
+	        <div ref={r} id="gameover-gumb" onClick={startButton}>
+	            <div id="gameover-gumb1">
+	                <BsArrowCounterclockwise size="30px"/>
+	            </div>
+	        </div>
+	    </div>
+	)
 }
 
 function BrDispla({naslov, broj}) {
@@ -40,7 +88,7 @@ function Gum() {
 
 var Gumb = React.memo(Gum);
 
-function NextDispla({sljedeci}) {
+function NextDispla({sljedeci, br}) {
 // ova funkcija crta sljedece objekte koji ce pasti. sljedeci je polje sa imenima objekata. ako ima vise od
 // cetiri objekta, ova funkcija prikazuje samo prva cetiri. Ako ne zelis prikazati ni jedan objekt, postavi
 // property sljedeci na prazno polje, []
@@ -52,7 +100,11 @@ function NextDispla({sljedeci}) {
 		if (sl.length > 4) sl = sl.slice(0,3);
 		//setNext(sl);
 		
-		var pp = sl.map((el, i) => {return <NextObjekt key={i} objekt={el}/>});
+		if (br == 0) {
+			var pp = [];
+		} else {
+		    var pp = sl.map((el, i) => {return <NextObjekt key={i} objekt={el}/>});
+		}
 		setPolje(pp);
 		
 	}, [sljedeci]);
@@ -167,24 +219,29 @@ class Aplikacija extends React.Component {
 			projekcija: {tip: null, koordX: null, koordY: null, orijentacija: null},  //  projekcija objekta na dnu displaya
 			projekcijaSw: true,  // za true crta projekciju, za false ne crta
 			nextObjects: [],    // sljedeci objekti koji ce se pojaviti
+			brSljedecihObjekata: 4,  // koliko prikazuje sljedecih objekata u Next displayu, mozes imati od 0 do 4
 			level: 1,
 			brLinija: 0,
-			score: 0
+			score: 0,
+			showGameOver: false     // za true prikazuje game over window, za false ga skriva
 		}
+		
+		this.vrijeme = 500;  // time step automatskog pomaka objekta prema dolje za jedno polje
 		
 		//ovdje slijede autoRepeat/autoDelay postavke, zatim prekidaci za eventhandlere i slicno.
 		this.horizontalniPomak = "n";  // aktualno stanje za n je nema pomaka, l je lijevi, d je desni pomak
-		this.autoRepeat = 60; // autorepeat u msec za lijevi/desni pomak u msec
-		this.autoDelay = 800;  // autodelay autorepeata za lijevi/desni pomak u msec
+		this.autoRepeat = 50; // autorepeat u msec za lijevi/desni pomak u msec
+		this.autoDelay = 220;  // autodelay autorepeata za lijevi/desni pomak u msec
 		
 		this.vertikalniPomak = "n";  // aktualno stanje za n je nema pomaka, za d - da, ima pomaka
-		this.autoRepeatV = 40; // autorepeat u msec za lijevi/desni pomak u msec
-		this.autoDelayV = 170;  // autodelay autorepeata za lijevi/desni pomak u msec
+		this.autoRepeatV = 40; // autorepeat u msec za vertikalni pomak u msec
+		this.autoDelayV = 270;  // autodelay autorepeata za vertikalni pomak u msec
 		
 		this.rotirajSw = true;  // prekidac koji onemogucuje autorotaciju
 		
 		this.ref1 = null;
 		this.ref2 = null;
+		this.engineRef = null;
 		
 		this.promijeniPolje = this.promijeniPolje.bind(this);
 		this.inicirajObjekt = this.inicirajObjekt.bind(this);
@@ -206,6 +263,9 @@ class Aplikacija extends React.Component {
 		this.projecirajObjekt = this.projecirajObjekt.bind(this);
 		this.autorepeatFun = this.autoRepeatFun.bind(this);
 		this.autorepeatFun1 = this.autoRepeatFun1.bind(this);
+		this.inicirajPocetakIgre = this.inicirajPocetakIgre.bind(this);
+		this.provjeriMogucnostInicijalizacije = this.provjeriMogucnostInicijalizacije.bind(this);
+		this.gameOver = this.gameOver.bind(this);
 	}
 	
 	componentDidMount() {
@@ -281,7 +341,7 @@ class Aplikacija extends React.Component {
 		return (
 		    <div id="okvir">
 		        <div id="el1">
-		            <NextDisplay sljedeci={this.state.nextObjects}/>
+		            <NextDisplay sljedeci={this.state.nextObjects} br={this.state.brSljedecihObjekata}/>
 		        </div>
 		        <div ref={(e) => {this._div = e}} id="display">
 		        </div>
@@ -291,33 +351,45 @@ class Aplikacija extends React.Component {
 		            <BrDisplay naslov="Lines:" broj={this.state.brLinija}/>
 		            <Gumb/>
 		        </div>
+		        <GameOverDisplay bodovi={this.state.score} startButton={this.engine} show={this.state.showGameOver}/>
 		    </div>
 		)
 	}
 	
-	engine() {
+	inicirajPocetakIgre() {
 		setTimeout(() => {
-		    this.sljedeciRandomObjekt();
-		    this.sljedeciRandomObjekt();
-		    this.sljedeciRandomObjekt();
-		    this.sljedeciRandomObjekt();
-		    
+			for (let i = 0; i < this.state.brSljedecihObjekata; i++) {
+		        this.sljedeciRandomObjekt();
+		    }
+		    if (this.state.brSljedecihObjekata == 0) {
+				this.sljedeciRandomObjekt();
+			}
+			
+		    this.setState({level: 1, brLinija: 0, score: 0, showGameOver: false, stanja: inicirajPolje(20, 12, 0)});
 		    this.inicirajObjekt(this.state.nextObjects[0]);  // I-shape, kvadrat, munja, obrnuta_munja, L-shape, obrL-shape, T-shape
 		    this.sljedeciRandomObjekt();
+		    this.vrijeme = 500;
 	    }, 10);
+	}
+	
+	engine() {
 		
+		this.inicirajPocetakIgre();
 		
-		//this.nacrtajObjekt({tip: "I-shape", koordX: 1, koordY: 6, orijentacija: 1, sw: true});
-		//this.nacrtajObjekt({tip: "I-shape", koordX: 6, koordY: 7, orijentacija: 1, sw: true});
-		//this.nacrtajObjekt({tip: "I-shape", koordX: 6, koordY: 1, orijentacija: 1, sw: true});
-		
-		//setInterval(() => {
-		//this.sljedeciRandomObjekt();
-		//console.log("STANJE: " + this.state.nextObjects);
-		//}, 2000);
+		this.engineRef = setInterval(() => {
+			if (this.provjeriDoljeObjekt()) {
+				this.spustiObjekt();
+			} else {
+				this.ugradiObjekt();
+			}
+			
+			
+			
+			}, this.vrijeme);
+
 	    
 		
-		if (true) {
+		if (false) {
 		setTimeout(() => {
 		//	this.spustiObjekt()
 		this.nacrtajObjekt({tip: "kvadrat", koordX: 0, koordY: 18, orijentacija: 1, sw: true});
@@ -329,11 +401,17 @@ class Aplikacija extends React.Component {
         }			
 	}
 	
+	gameOver() {
+		//alert("GAME OVER!!!");
+		clearTimeout(this.engineRef);
+		this.setState({showGameOver: true});
+	}
+	
 	sljedeciRandomObjekt() {
 		var noviNext = [...this.state.nextObjects];
 		noviNext.push(["I-shape", "kvadrat", "munja", "obrnuta_munja", "L-shape", "obrL-shape", "T-shape"][Math.floor(Math.random()*7)]);
 		//noviNext.push("T-shape");
-		if (noviNext.length > 4)  noviNext.shift();
+		if (noviNext.length > this.state.brSljedecihObjekata   &&  noviNext.length > 1)  noviNext.shift();
 		this.setState({nextObjects: noviNext});
 	}
 	
@@ -1073,36 +1151,64 @@ class Aplikacija extends React.Component {
 	inicirajObjekt(tip) {
 		switch (tip) {
 			case "I-shape":
+			    if (! this.provjeriMogucnostInicijalizacije([[4,0],[5,0],[6,0],[7,0]])) {
+					this.gameOver();
+					break;
+				}
 		        var noviObjekt = {tip: "I-shape", koordX: 5, koordY: 0, orijentacija: 1};
 		        this.promijeniPolje([[4,0,2],[5,0,2],[6,0,2],[7,0,2]]);
 		        this.setState({objekt: noviObjekt});
 		        break;
 		    case "kvadrat":
+		        if (! this.provjeriMogucnostInicijalizacije([[5,0],[6,0],[5,1],[6,1]])) {
+					this.gameOver();
+					break;
+				}
 		        var noviObjekt = {tip: "kvadrat", koordX: 5, koordY: 0, orijentacija: 1};
 		        this.promijeniPolje([[5,0,1],[6,0,1],[5,1,1],[6,1,1]]);
 		        this.setState({objekt: noviObjekt});
 		        break;    
 		    case "munja":
+		        if (! this.provjeriMogucnostInicijalizacije([[5,0],[6,0],[5,1],[4,1]])) {
+					this.gameOver();
+					break;
+				}
 		        var noviObjekt = {tip: "munja", koordX: 5, koordY: 0, orijentacija: 1};
 		        this.promijeniPolje([[5,0,3],[6,0,3],[5,1,3],[4,1,3]]);
 		        this.setState({objekt: noviObjekt});
 		        break;    
 		    case "obrnuta_munja":
+		        if (! this.provjeriMogucnostInicijalizacije([[4,0],[5,0],[5,1],[6,1]])) {
+					this.gameOver();
+					break;
+				}
 		        var noviObjekt = {tip: "obrnuta_munja", koordX: 5, koordY: 0, orijentacija: 1};
 		        this.promijeniPolje([[4,0,4],[5,0,4],[5,1,4],[6,1,4]]);
 		        this.setState({objekt: noviObjekt});
 		        break;   
 		    case "L-shape":
+		        if (! this.provjeriMogucnostInicijalizacije([[4,1],[4,0],[5,0],[6,0]])) {
+					this.gameOver();
+					break;
+				}
 		        var noviObjekt = {tip: "L-shape", koordX: 5, koordY: 0, orijentacija: 1};
 		        this.promijeniPolje([[4,1,5],[4,0,5],[5,0,5],[6,0,5]]);
 		        this.setState({objekt: noviObjekt});
 		        break;   
 		    case "obrL-shape":
+		        if (! this.provjeriMogucnostInicijalizacije([[4,0],[5,0],[6,0],[6,1]])) {
+					this.gameOver();
+					break;
+				}
 		        var noviObjekt = {tip: "obrL-shape", koordX: 5, koordY: 0, orijentacija: 1};
 		        this.promijeniPolje([[4,0,6],[5,0,6],[6,0,6],[6,1,6]]);
 		        this.setState({objekt: noviObjekt});
 		        break;    
 		    case "T-shape":
+		        if (! this.provjeriMogucnostInicijalizacije([[4,0],[5,0],[6,0],[5,1]])) {
+					this.gameOver();
+					break;
+				}
 		        var noviObjekt = {tip: "T-shape", koordX: 5, koordY: 0, orijentacija: 1};
 		        this.promijeniPolje([[4,0,7],[5,0,7],[6,0,7],[5,1,7]]);
 		        this.setState({objekt: noviObjekt});
@@ -1124,6 +1230,18 @@ class Aplikacija extends React.Component {
 		    }
 		}
 		this.setState({stanja: rez});
+	}
+	
+	provjeriMogucnostInicijalizacije(podaci) {
+		// ova funkcija sluzi za provjeru da li je moguce inicijalizirati objekt. ako nije moguce vraca false 
+		// sto znaci da je igra moguca, inace vraca true
+		for (let el of podaci) {
+			if (el[1] >= 0 && el[1] <= 19 && el[0] >= 0 && el[0] <= 11) {
+		        if (this.state.stanja[el[1]][el[0]] > 0)  return false;
+		    }
+		}
+		return true;
+		
 	}
 	
 	provjeriPuneLinije() {
@@ -1177,8 +1295,10 @@ class Aplikacija extends React.Component {
 		brlin += linije.length;
 		var sco = this.state.score;
 		sco += izracunajScore(this.state.level, this.state.score, linije.length);
+		var lev = Math.floor(brlin / 10) + 1;
+		this.vrijeme = 500 * 0.85**(lev-1);
 		
-		this.setState({stanja: rez, score: sco, brLinija: brlin});
+		this.setState({stanja: rez, score: sco, brLinija: brlin, level: lev});
 		this.nacrtajObjekt({...this.state.objekt, sw: true});
 		this.projecirajObjekt();
 		
@@ -1276,6 +1396,9 @@ class Aplikacija extends React.Component {
 		    case "Space":
 		        this.brzoSpustiObjekt();
 		        break;
+		    case "KeyG":
+			    this.gameOver();
+			    break;
 		}
 	}
 	
