@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 import "./index.css";
 import { BsArrowCounterclockwise } from "react-icons/bs";
+import Zvuk from "./zvuk.js";
 
 function dodajStilove(el, stilovi) {
 	for (let key in stilovi) {
@@ -21,7 +22,7 @@ function inicirajPolje(x, y, vr) { // inicira polje [x][y] sa vrijednostima vr
 	return rez;
 }
 
-function GameOverDisplay({bodovi, startButton, show}) {
+function GameOverDispla({bodovi, startButton, show}) {
 	const  r = React.useRef();
 	const  r1 = React.useRef();
 	console.log("renderao si gameover display");
@@ -68,6 +69,8 @@ function GameOverDisplay({bodovi, startButton, show}) {
 	)
 }
 
+var GameOverDisplay = React.memo(GameOverDispla);
+
 function BrDispla({naslov, broj}) {
 	return (
 	    <div id="brdisplay">
@@ -78,9 +81,9 @@ function BrDispla({naslov, broj}) {
 
 var BrDisplay = React.memo(BrDispla);
 
-function Gum() {
+function Gum({klik}) {
 	return (
-	    <div id="gumb">
+	    <div onClick={klik} id="gumb">
 	        <p id="gumb-p">Start Game</p>
 	    </div>
 	)
@@ -226,6 +229,7 @@ class Aplikacija extends React.Component {
 			showGameOver: false     // za true prikazuje game over window, za false ga skriva
 		}
 		
+		
 		this.vrijeme = 500;  // time step automatskog pomaka objekta prema dolje za jedno polje
 		
 		//ovdje slijede autoRepeat/autoDelay postavke, zatim prekidaci za eventhandlere i slicno.
@@ -280,7 +284,8 @@ class Aplikacija extends React.Component {
 		document.addEventListener("keydown", this.pritisakGumba);
         document.addEventListener("keyup", this.pritisakGumbaUp);
 		
-		this.engine();
+		this.zvuk = new Zvuk();
+		//this.engine();
 		
 		//this.promijeniPolje([[0, 5, 1], [1, 5, 2], [2, 5, 0], [3, 5, 3], [4, 5, 4], [5, 5, 5], [6, 5, 6], [7, 5, 7]]);
 	}
@@ -301,7 +306,7 @@ class Aplikacija extends React.Component {
 					    dodajStilove(this._div.children[i], {borderColor:"green"});   // ovo je za slucaj projekcije
 					    break;
 					case (0):
-				        dodajStilove(this._div.children[i], {borderColor:"#111111", backgroundColor:"#000000"}); // crna, prazno polje
+				        dodajStilove(this._div.children[i], {borderColor:"#111111", backgroundColor:"#000000", animationName:null, animationDuration:null}); // crna, prazno polje
 				        break;
 				    case (1):
 				        dodajStilove(this._div.children[i], {borderColor:"#111111", backgroundColor:"#db1107"}); // crvena, za kvadrat
@@ -325,7 +330,7 @@ class Aplikacija extends React.Component {
 				        dodajStilove(this._div.children[i], {borderColor:"#111111", backgroundColor:"#d4d124"});   // zuta, za T-shape
 				        break;
 				    case (8):   //  slucaj animacije polja kojeg ponistavamo, u slucaju da je linija puna
-				        dodajStilove(this._div.children[i], {backgroundColor:"white"});
+				        dodajStilove(this._div.children[i], {borderColor:"#111111", animationName:"animacija", animationDuration:"0.5s"});
 				        break;
 				    default:
 				        alert("Error, krivi input");
@@ -336,6 +341,7 @@ class Aplikacija extends React.Component {
 		//console.log("previous:" + prevState.stanja);
 		
 	}
+	
 	
 	render() {
 		return (
@@ -349,7 +355,7 @@ class Aplikacija extends React.Component {
 		            <BrDisplay naslov="Score:" broj={this.state.score}/>
 		            <BrDisplay naslov="Level:" broj={this.state.level}/>
 		            <BrDisplay naslov="Lines:" broj={this.state.brLinija}/>
-		            <Gumb/>
+		            <Gumb klik={this.engine}/>
 		        </div>
 		        <GameOverDisplay bodovi={this.state.score} startButton={this.engine} show={this.state.showGameOver}/>
 		    </div>
@@ -380,6 +386,7 @@ class Aplikacija extends React.Component {
 			if (this.provjeriDoljeObjekt()) {
 				this.spustiObjekt();
 			} else {
+				this.zvuk.pusti(3);
 				this.ugradiObjekt();
 			}
 			
@@ -404,6 +411,7 @@ class Aplikacija extends React.Component {
 	gameOver() {
 		//alert("GAME OVER!!!");
 		clearTimeout(this.engineRef);
+		setTimeout(() => {this.zvuk.pusti(4)}, 170);
 		this.setState({showGameOver: true});
 	}
 	
@@ -438,6 +446,7 @@ class Aplikacija extends React.Component {
 		//objekt: {tip: null, koordX: null, koordY: null, orijentacija: null}	
 		    noviObjekt.koordY += 1;
 		}
+		this.zvuk.pusti(2);
 		this.nacrtajObjekt({...noviObjekt, sw: true});
 		this.setState({objekt: noviObjekt});
 		this.ugradiObjekt();
@@ -502,6 +511,7 @@ class Aplikacija extends React.Component {
 		            alert("Kod rotacije imas zadan pogresan tip");
 		    }
 		    
+		    this.zvuk.pusti(0);
 		    this.nacrtajObjekt({...noviObjekt, sw: true});
 		    this.setState({objekt: noviObjekt});
 		    this.projecirajObjekt();
@@ -517,6 +527,7 @@ class Aplikacija extends React.Component {
 			} else {
 				noviObjekt.koordX += 1;
 			}
+			this.zvuk.pusti(1);
 		    this.nacrtajObjekt({...noviObjekt, sw: true});
 		    this.setState({objekt: noviObjekt});
 		    this.projecirajObjekt();
@@ -526,10 +537,10 @@ class Aplikacija extends React.Component {
 	provjeriRotacijuObjekt(sw) {  // za sw false/faulty/nepostojeci provjeravas rotaciju u smjeru kazaljke na satu, za true u smjeru suprotnom od kazaljke na satu
 		var {koordX, koordY, tip, orijentacija} = {...this.state.objekt};
 		if (sw) {
-			console.log("truthy");
+			//console.log("truthy");
 			tip += "-suprotni";
 		} else {
-			console.log("faulty");
+			//console.log("faulty");
 		}
 		switch (tip) {
 			case ("I-shape"):
@@ -1270,8 +1281,8 @@ class Aplikacija extends React.Component {
 		}
 		console.log("krenula animacije " + pp);
 		this.promijeniPolje(pp);
+		this.zvuk.pusti(5);
 		pp =  pp.map((el) => {return [el[0], el[1], 0]});
-		
 		
 		setTimeout(()=>{
 		    this.promijeniPolje(pp);

@@ -132,7 +132,7 @@
     border-color: grey;
     border-radius: 20%;
     /*margin: 300px auto 0px auto;*/
-    display: flex;
+    display: none; /*togglamo izmedu none i flex*/
     flex-direction: column;
     align-items: center; 
     position: absolute;
@@ -184,3 +184,13 @@
     justify-content: center;
     align-items: center;
 }
+
+@keyframes animacija {
+    0% {background-color: white;}
+    27% {background-color: black;}
+    37% {background-color: white;}
+    64% {background-color: black;}
+    74% {background-color: white;}
+    100% {background-color: black;}
+}
+
