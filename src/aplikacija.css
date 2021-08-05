@@ -2,9 +2,10 @@
     height: 700px;
     width: 840px;
     margin: 0px auto 0px auto;
-    background-color: pink;
+    background-color: #444444;
     display: flex;
     position: relative;
+    user-select: none;
 }
 
 #display {
@@ -23,7 +24,7 @@
 #el, #el1 {
     height: 100%;
     width: 240px;
-    background-color: green;
+    background-color: #444444;
     display: flex;
     flex-direction: column;
 }
@@ -66,9 +67,15 @@
     background-color: #555555;
 }
 
-#gumb-p {
+.gumb-p {
     font-family: sans-serif;
     font-size: 21px;
+    display: inline-block;
+}
+
+.gumb-p1 {
+    font-family: sans-serif;
+    font-size: 19px;
     display: inline-block;
 }
 
@@ -162,7 +169,16 @@
     color: #ddfacd;
 }
 
-#gameover-gumb {
+#gameover-el {
+    height: 70px;
+    width: 100%;
+    /*background-color: pink;*/
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gameover-gumb {
     height: 50px;
     width: 100px;
     background-color: #222222;
@@ -173,9 +189,10 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    margin: 0px 20px 0px 20px;
 }
 
-#gameover-gumb1 {
+.gameover-gumb1 {
     height: 85%;
     width: 85%;
     background-color: green;
@@ -194,3 +211,18 @@
     100% {background-color: black;}
 }
 
+.gumbopcije {
+    height: 70px;
+    width: 160px;
+    background-color: #222222;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 20px auto 0px auto;
+    border-radius: 20%;
+}
+
+.gumbopcije:hover {
+    background-color: #555555;
+}
